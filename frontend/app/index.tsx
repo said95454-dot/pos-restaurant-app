@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { storage } from '../utils/storage';
@@ -29,9 +29,15 @@ export default function Home() {
 
   useEffect(() => {
     checkSession();
-    checkCashiers();
     startAnimations();
   }, []);
+
+  // Verificar cajeros cada vez que la pantalla obtiene el foco
+  useFocusEffect(
+    React.useCallback(() => {
+      checkCashiers();
+    }, [])
+  );
 
   const startAnimations = () => {
     // Pulsing animation for the icon
