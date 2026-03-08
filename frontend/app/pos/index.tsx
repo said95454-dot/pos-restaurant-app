@@ -228,15 +228,23 @@ export default function POSScreen() {
   const showTicketOptions = (order: any) => {
     Alert.alert(
       '✅ Orden Completada',
-      '¿Qué deseas hacer con el ticket?',
+      'Selecciona una opción para el ticket:',
       [
+        {
+          text: '🖨️ Imprimir (AirPrint)',
+          onPress: () => handlePrintTicket(order),
+        },
         {
           text: '📄 Guardar PDF',
           onPress: () => handleSaveTicket(order),
         },
         {
-          text: '🖨️ Imprimir',
-          onPress: () => handlePrintTicket(order),
+          text: '📧 Enviar por Email',
+          onPress: () => handleEmailTicket(order),
+        },
+        {
+          text: '📱 Compartir',
+          onPress: () => handleShareTicket(order),
         },
         {
           text: 'Cerrar',
@@ -313,6 +321,82 @@ export default function POSScreen() {
         // Error real, registrar y mostrar opciones
         console.error('Error printing ticket:', error);
         showTicketOptions(order);
+      }
+    }
+  };
+
+  const handleEmailTicket = async (order: any) => {
+    try {
+      const html = await generateReceipt(order);
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      // Compartir específicamente por email
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Enviar ticket por email',
+          UTI: 'com.adobe.pdf',
+        });
+        resetOrderState();
+      } else {
+        Alert.alert('Error', 'No se puede compartir en este dispositivo');
+        showTicketOptions(order);
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || '';
+      const isCancellation = 
+        errorMessage.includes('cancel') ||
+        errorMessage.includes('User cancelled') ||
+        errorMessage.includes('dismissed');
+      
+      if (isCancellation) {
+        showTicketOptions(order);
+      } else {
+        console.error('Error emailing ticket:', error);
+        Alert.alert('Error', 'No se pudo enviar el ticket', [
+          {
+            text: 'Reintentar',
+            onPress: () => showTicketOptions(order),
+          },
+        ]);
+      }
+    }
+  };
+
+  const handleShareTicket = async (order: any) => {
+    try {
+      const html = await generateReceipt(order);
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      // Abrir menú de compartir completo (WhatsApp, Drive, etc.)
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Compartir ticket',
+          UTI: 'com.adobe.pdf',
+        });
+        resetOrderState();
+      } else {
+        Alert.alert('Éxito', 'Ticket guardado en: ' + uri);
+        resetOrderState();
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || '';
+      const isCancellation = 
+        errorMessage.includes('cancel') ||
+        errorMessage.includes('User cancelled') ||
+        errorMessage.includes('dismissed');
+      
+      if (isCancellation) {
+        showTicketOptions(order);
+      } else {
+        console.error('Error sharing ticket:', error);
+        Alert.alert('Error', 'No se pudo compartir el ticket', [
+          {
+            text: 'Reintentar',
+            onPress: () => showTicketOptions(order),
+          },
+        ]);
       }
     }
   };
