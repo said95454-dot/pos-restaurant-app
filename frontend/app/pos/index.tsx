@@ -126,16 +126,33 @@ export default function POSScreen() {
         return;
       }
       
+      console.log('Loading sales for cashier:', cashier.name, cashier.id);
+      
       const today = new Date().toISOString().split('T')[0];
       const allOrders = await api.getOrders(today);
       
-      // Filtrar solo las órdenes de este cajero
-      const mySales = allOrders.filter((order: any) => order.cashier_id === cashier.id);
+      console.log('Total orders today:', allOrders.length);
+      console.log('Cashier ID:', cashier.id);
+      
+      // Filtrar solo las órdenes de este cajero (comparar ambos como strings)
+      const mySales = allOrders.filter((order: any) => {
+        const orderCashierId = order.cashier_id ? String(order.cashier_id) : null;
+        const currentCashierId = String(cashier.id);
+        return orderCashierId === currentCashierId;
+      });
+      
+      console.log('My sales:', mySales.length);
+      
       setCashierOrders(mySales);
       setShowCashierSales(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading cashier sales:', error);
-      Alert.alert('Error', 'No se pudieron cargar tus ventas');
+      console.error('Error details:', error.message);
+      Alert.alert(
+        'Error', 
+        `No se pudieron cargar tus ventas.\n\n${error.message || 'Error desconocido'}`,
+        [{ text: 'OK' }]
+      );
     }
   };
 
