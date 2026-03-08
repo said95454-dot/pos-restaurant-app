@@ -204,19 +204,77 @@ export default function POSScreen() {
         cashier_name: cashier?.name || null,
       };
 
-      await api.createOrder(orderData);
+      const createdOrder = await api.createOrder(orderData);
       
-      // Immediately close modal and reset state (SIN IMPRIMIR)
       setProcessing(false);
       setShowCheckoutModal(false);
-      setCart([]);
-      setCustomerName('');
-      setPaymentMethod('cash');
+      
+      // Mostrar opciones de ticket
+      Alert.alert(
+        '✅ Orden Completada',
+        '¿Qué deseas hacer con el ticket?',
+        [
+          {
+            text: '📄 Guardar PDF',
+            onPress: () => handleSaveTicket(createdOrder),
+          },
+          {
+            text: '🖨️ Imprimir',
+            onPress: () => handlePrintTicket(createdOrder),
+          },
+          {
+            text: 'Cerrar',
+            style: 'cancel',
+            onPress: () => resetOrderState(),
+          },
+        ],
+        { cancelable: false }
+      );
       
     } catch (error) {
       console.error('Error creating order:', error);
       setProcessing(false);
       Alert.alert('Error', 'No se pudo crear la orden');
+    }
+  };
+
+  const resetOrderState = () => {
+    setCart([]);
+    setCustomerName('');
+    setPaymentMethod('cash');
+  };
+
+  const handleSaveTicket = async (order: any) => {
+    try {
+      const html = await generateReceipt(order);
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      // Compartir/Guardar el PDF
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Guardar Ticket',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('Éxito', 'Ticket guardado en: ' + uri);
+      }
+      
+      resetOrderState();
+    } catch (error) {
+      console.error('Error saving ticket:', error);
+      Alert.alert('Error', 'No se pudo guardar el ticket');
+    }
+  };
+
+  const handlePrintTicket = async (order: any) => {
+    try {
+      const html = await generateReceipt(order);
+      await Print.printAsync({ html });
+      resetOrderState();
+    } catch (error) {
+      console.error('Error printing ticket:', error);
+      Alert.alert('Error', 'No se pudo imprimir el ticket');
     }
   };
 
@@ -257,7 +315,8 @@ export default function POSScreen() {
         <body>
           <h1>${businessName}</h1>
           <p><strong>Cliente:</strong> ${order.customer_name}</p>
-          <p><strong>Fecha:</strong> ${new Date(order.created_at).toLocaleString('es-MX')}</p>
+          <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-MX')}</p>
+          <p><strong>Cajero:</strong> ${order.cashier_name || 'N/A'}</p>
           <p><strong>Método de pago:</strong> ${order.payment_method === 'cash' ? 'Efectivo' : order.payment_method === 'card' ? 'Tarjeta' : 'Transferencia'}</p>
           <table>
             <thead>
@@ -279,13 +338,7 @@ export default function POSScreen() {
       </html>
     `;
 
-    try {
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri);
-      await api.markOrderPrinted(order.id);
-    } catch (error) {
-      console.error('Error generating receipt:', error);
-    }
+    return html;
   };
 
   if (loading) {
