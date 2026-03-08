@@ -81,6 +81,8 @@ class Order(BaseModel):
     items: List[OrderItem]
     total: float
     payment_method: str  # "cash", "card", "transfer"
+    amount_received: Optional[float] = None  # Monto recibido (para efectivo)
+    change: Optional[float] = None  # Cambio dado (para efectivo)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     printed: bool = False
     date: str = Field(default_factory=lambda: datetime.utcnow().strftime("%Y-%m-%d"))
@@ -92,6 +94,8 @@ class OrderCreate(BaseModel):
     items: List[OrderItem]
     total: float
     payment_method: str
+    amount_received: Optional[float] = None  # Monto recibido (para efectivo)
+    change: Optional[float] = None  # Cambio dado (para efectivo)
     cashier_id: Optional[str] = None
     cashier_name: Optional[str] = None
 
