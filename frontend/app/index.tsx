@@ -8,11 +8,13 @@ import {
   ActivityIndicator,
   Animated,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { storage } from '../utils/storage';
+import { API } from '../utils/api';
 
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = height < 700;
@@ -20,11 +22,14 @@ const isSmallScreen = height < 700;
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [hasCashiers, setHasCashiers] = useState(false);
+  const [checkingCashiers, setCheckingCashiers] = useState(true);
   const pulseAnim = new Animated.Value(1);
   const floatAnim = new Animated.Value(0);
 
   useEffect(() => {
     checkSession();
+    checkCashiers();
     startAnimations();
   }, []);
 
@@ -66,7 +71,38 @@ export default function Home() {
     setLoading(false);
   };
 
+  const checkCashiers = async () => {
+    try {
+      const cashiers = await API.getCashiers();
+      // Verificar si hay al menos un cajero activo
+      const activeCashiers = cashiers.filter((c: any) => c.is_active);
+      setHasCashiers(activeCashiers.length > 0);
+    } catch (error) {
+      console.error('Error checking cashiers:', error);
+      setHasCashiers(false);
+    } finally {
+      setCheckingCashiers(false);
+    }
+  };
+
   const handlePOSPress = () => {
+    if (!hasCashiers) {
+      Alert.alert(
+        'Sin Cajeros Registrados',
+        'Debes crear al menos un cajero en el panel de Administración antes de acceder al Punto de Venta.',
+        [
+          {
+            text: 'Ir a Administración',
+            onPress: () => router.push('/manager/login'),
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
+      return;
+    }
     router.push('/pos/login');
   };
 
@@ -127,17 +163,34 @@ export default function Home() {
               <TouchableOpacity
                 style={styles.mainButton}
                 onPress={handlePOSPress}
-                activeOpacity={0.8}
+                activeOpacity={hasCashiers ? 0.8 : 1}
+                disabled={checkingCashiers}
               >
                 <LinearGradient
-                  colors={['#00f0ff', '#0080ff', '#0040ff']}
+                  colors={hasCashiers 
+                    ? ['#00f0ff', '#0080ff', '#0040ff']
+                    : ['#666666', '#444444', '#333333']
+                  }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.buttonGradient}
                 >
-                  <Ionicons name="cart" size={40} color="white" />
-                  <Text style={styles.buttonText}>PUNTO DE VENTA</Text>
-                  <Text style={styles.buttonSubtext}>TOMAR ÓRDENES</Text>
+                  {checkingCashiers ? (
+                    <ActivityIndicator size="large" color="white" />
+                  ) : (
+                    <>
+                      <Ionicons name="cart" size={40} color="white" />
+                      <Text style={styles.buttonText}>PUNTO DE VENTA</Text>
+                      <Text style={styles.buttonSubtext}>
+                        {hasCashiers ? 'TOMAR ÓRDENES' : '⚠️ SIN CAJEROS'}
+                      </Text>
+                      {!hasCashiers && (
+                        <Text style={styles.warningText}>
+                          Crea cajeros primero
+                        </Text>
+                      )}
+                    </>
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -293,5 +346,12 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     fontWeight: '600',
     textTransform: 'uppercase',
+  },
+  warningText: {
+    fontSize: 10,
+    color: '#ffcc00',
+    marginTop: 4,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
