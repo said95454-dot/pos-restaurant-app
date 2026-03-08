@@ -210,26 +210,7 @@ export default function POSScreen() {
       setShowCheckoutModal(false);
       
       // Mostrar opciones de ticket
-      Alert.alert(
-        '✅ Orden Completada',
-        '¿Qué deseas hacer con el ticket?',
-        [
-          {
-            text: '📄 Guardar PDF',
-            onPress: () => handleSaveTicket(createdOrder),
-          },
-          {
-            text: '🖨️ Imprimir',
-            onPress: () => handlePrintTicket(createdOrder),
-          },
-          {
-            text: 'Cerrar',
-            style: 'cancel',
-            onPress: () => resetOrderState(),
-          },
-        ],
-        { cancelable: false }
-      );
+      showTicketOptions(createdOrder);
       
     } catch (error) {
       console.error('Error creating order:', error);
@@ -244,6 +225,29 @@ export default function POSScreen() {
     setPaymentMethod('cash');
   };
 
+  const showTicketOptions = (order: any) => {
+    Alert.alert(
+      '✅ Orden Completada',
+      '¿Qué deseas hacer con el ticket?',
+      [
+        {
+          text: '📄 Guardar PDF',
+          onPress: () => handleSaveTicket(order),
+        },
+        {
+          text: '🖨️ Imprimir',
+          onPress: () => handlePrintTicket(order),
+        },
+        {
+          text: 'Cerrar',
+          style: 'cancel',
+          onPress: () => resetOrderState(),
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
   const handleSaveTicket = async (order: any) => {
     try {
       const html = await generateReceipt(order);
@@ -256,36 +260,42 @@ export default function POSScreen() {
           dialogTitle: 'Guardar Ticket',
           UTI: 'com.adobe.pdf',
         });
+        // Si llegó aquí, el usuario compartió exitosamente
+        resetOrderState();
       } else {
         Alert.alert('Éxito', 'Ticket guardado en: ' + uri);
+        resetOrderState();
       }
-      
-      resetOrderState();
     } catch (error: any) {
       console.error('Error saving ticket:', error);
-      // Solo mostrar error si no fue cancelación
-      if (error.message && !error.message.includes('cancel')) {
-        Alert.alert('Error', 'No se pudo guardar el ticket');
+      // Si el usuario canceló o hubo error, volver a mostrar opciones
+      if (error.message && error.message.includes('cancel')) {
+        // Usuario canceló, volver a mostrar opciones
+        showTicketOptions(order);
+      } else {
+        // Error real, mostrar mensaje y volver a opciones
+        Alert.alert('Error', 'No se pudo guardar el ticket', [
+          {
+            text: 'Reintentar',
+            onPress: () => showTicketOptions(order),
+          },
+        ]);
       }
-      resetOrderState();
     }
   };
 
   const handlePrintTicket = async (order: any) => {
     try {
-      const html = await generateReceipt(order);
-      await Print.printAsync({ 
-        html,
-        printerUrl: undefined, // Permite seleccionar impresora
+      const result = await Print.printAsync({ 
+        html: await generateReceipt(order),
+        printerUrl: undefined,
       });
+      // Si llegó aquí sin error, la impresión se completó
       resetOrderState();
     } catch (error: any) {
       console.error('Error printing ticket:', error);
-      // Solo mostrar error si no fue cancelación del usuario
-      if (error.message && !error.message.includes('cancel') && !error.message.includes('User')) {
-        Alert.alert('Error', 'No se pudo imprimir el ticket');
-      }
-      resetOrderState();
+      // El usuario canceló o hubo error, volver a mostrar opciones
+      showTicketOptions(order);
     }
   };
 
