@@ -261,55 +261,107 @@ export default function POSScreen() {
       }
       
       resetOrderState();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving ticket:', error);
-      Alert.alert('Error', 'No se pudo guardar el ticket');
+      // Solo mostrar error si no fue cancelación
+      if (error.message && !error.message.includes('cancel')) {
+        Alert.alert('Error', 'No se pudo guardar el ticket');
+      }
+      resetOrderState();
     }
   };
 
   const handlePrintTicket = async (order: any) => {
     try {
       const html = await generateReceipt(order);
-      await Print.printAsync({ html });
+      await Print.printAsync({ 
+        html,
+        printerUrl: undefined, // Permite seleccionar impresora
+      });
       resetOrderState();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error printing ticket:', error);
-      Alert.alert('Error', 'No se pudo imprimir el ticket');
+      // Solo mostrar error si no fue cancelación del usuario
+      if (error.message && !error.message.includes('cancel') && !error.message.includes('User')) {
+        Alert.alert('Error', 'No se pudo imprimir el ticket');
+      }
+      resetOrderState();
     }
   };
 
   const generateReceipt = async (order: any) => {
     const itemsHtml = order.items
       .map(
-        (item: CartItem) => `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.product_name} x${item.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">$${item.subtotal.toFixed(2)}</td>
-        </tr>
-        ${Object.entries(item.selected_options)
-          .filter(([_, value]) => value)
-          .map(
-            ([key]) => `
+        (item: CartItem) => {
+          // Opciones personalizadas
+          const optionsHtml = item.selected_options && item.selected_options.length > 0
+            ? item.selected_options.map(option => `
+              <tr>
+                <td colspan="2" style="padding: 2px 8px 2px 24px; font-size: 11px; color: #666;">
+                  • ${option}
+                </td>
+              </tr>
+            `).join('')
+            : '';
+
+          return `
             <tr>
-              <td colspan="2" style="padding: 4px 8px 4px 24px; font-size: 12px; color: #666;">
-                • ${key.replace('with_', 'Con ')}
-              </td>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.product_name} x${item.quantity}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">$${item.subtotal.toFixed(2)}</td>
             </tr>
-          `
-          )
-          .join('')}
-      `
+            ${optionsHtml}
+          `;
+        }
       )
       .join('');
 
     const html = `
       <html>
         <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { text-align: center; color: #333; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            .total { font-size: 18px; font-weight: bold; }
+            @page {
+              margin: 20px;
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 10px;
+              font-size: 14px;
+            }
+            h1 { 
+              text-align: center; 
+              color: #333;
+              font-size: 20px;
+              margin-bottom: 10px;
+            }
+            p {
+              margin: 4px 0;
+              font-size: 13px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-top: 15px;
+            }
+            th {
+              padding: 8px;
+              border-bottom: 2px solid #333;
+              text-align: left;
+              font-size: 13px;
+            }
+            td {
+              font-size: 13px;
+            }
+            .total { 
+              font-size: 16px; 
+              font-weight: bold;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 20px;
+              color: #666;
+              font-size: 12px;
+            }
           </style>
         </head>
         <body>
@@ -317,12 +369,16 @@ export default function POSScreen() {
           <p><strong>Cliente:</strong> ${order.customer_name}</p>
           <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-MX')}</p>
           <p><strong>Cajero:</strong> ${order.cashier_name || 'N/A'}</p>
-          <p><strong>Método de pago:</strong> ${order.payment_method === 'cash' ? 'Efectivo' : order.payment_method === 'card' ? 'Tarjeta' : 'Transferencia'}</p>
+          <p><strong>Método de pago:</strong> ${
+            order.payment_method === 'cash' ? 'Efectivo' : 
+            order.payment_method === 'card' ? 'Tarjeta' : 
+            'Transferencia'
+          }</p>
           <table>
             <thead>
               <tr>
-                <th style="padding: 8px; border-bottom: 2px solid #333; text-align: left;">Producto</th>
-                <th style="padding: 8px; border-bottom: 2px solid #333; text-align: right;">Precio</th>
+                <th>Producto</th>
+                <th style="text-align: right;">Precio</th>
               </tr>
             </thead>
             <tbody>
@@ -333,7 +389,7 @@ export default function POSScreen() {
               </tr>
             </tbody>
           </table>
-          <p style="text-align: center; margin-top: 30px; color: #666;">¡Gracias por su compra!</p>
+          <p class="footer">¡Gracias por su compra!</p>
         </body>
       </html>
     `;
