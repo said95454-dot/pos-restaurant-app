@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { storage } from '../utils/storage';
-import { API } from '../utils/api';
+import { api } from '../utils/api';
 
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = height < 700;
@@ -73,7 +73,7 @@ export default function Home() {
 
   const checkCashiers = async () => {
     try {
-      const cashiers = await API.getCashiers();
+      const cashiers = await api.getCashiers();
       // Verificar si hay al menos un cajero activo
       const activeCashiers = cashiers.filter((c: any) => c.is_active);
       setHasCashiers(activeCashiers.length > 0);
