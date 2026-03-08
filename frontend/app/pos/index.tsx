@@ -56,6 +56,7 @@ export default function POSScreen() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [cashier, setCashier] = useState<Cashier | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [amountReceived, setAmountReceived] = useState('');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showDailyHistory, setShowDailyHistory] = useState(false);
@@ -182,6 +183,12 @@ export default function POSScreen() {
     return cart.reduce((sum, item) => sum + item.subtotal, 0);
   };
 
+  const calculateChange = () => {
+    const total = calculateTotal();
+    const received = parseFloat(amountReceived) || 0;
+    return received - total;
+  };
+
   const handleCheckout = async () => {
     if (!customerName.trim()) {
       Alert.alert('Error', 'Por favor ingresa el nombre del cliente');
@@ -191,6 +198,22 @@ export default function POSScreen() {
     if (cart.length === 0) {
       Alert.alert('Error', 'El carrito está vacío');
       return;
+    }
+
+    // Validar monto recibido si el pago es en efectivo
+    if (paymentMethod === 'cash') {
+      const received = parseFloat(amountReceived) || 0;
+      const total = calculateTotal();
+      
+      if (received === 0) {
+        Alert.alert('Error', 'Ingresa el monto recibido del cliente');
+        return;
+      }
+      
+      if (received < total) {
+        Alert.alert('Error', `El monto recibido ($${received.toFixed(2)}) es menor al total ($${total.toFixed(2)})`);
+        return;
+      }
     }
 
     setProcessing(true);
@@ -223,6 +246,7 @@ export default function POSScreen() {
     setCart([]);
     setCustomerName('');
     setPaymentMethod('cash');
+    setAmountReceived('');
   };
 
   const showTicketOptions = (order: any) => {
@@ -766,6 +790,42 @@ export default function POSScreen() {
                 ))}
               </View>
             </View>
+
+            {/* Cash Payment Details */}
+            {paymentMethod === 'cash' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Detalles de Pago</Text>
+                <View style={styles.cashPaymentContainer}>
+                  <Text style={styles.cashLabel}>Monto Recibido</Text>
+                  <TextInput
+                    style={styles.cashInput}
+                    value={amountReceived}
+                    onChangeText={setAmountReceived}
+                    placeholder="$0.00"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="decimal-pad"
+                  />
+                  
+                  {amountReceived && parseFloat(amountReceived) >= calculateTotal() && (
+                    <View style={styles.changeContainer}>
+                      <Text style={styles.changeLabel}>Cambio</Text>
+                      <Text style={styles.changeAmount}>
+                        ${calculateChange().toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {amountReceived && parseFloat(amountReceived) < calculateTotal() && (
+                    <View style={styles.warningContainer}>
+                      <Ionicons name="warning" size={20} color="#ef4444" />
+                      <Text style={styles.warningText}>
+                        Falta: ${(calculateTotal() - parseFloat(amountReceived)).toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
 
             {/* Total */}
             <View style={styles.totalContainer}>
@@ -1348,6 +1408,60 @@ const styles = StyleSheet.create({
   paymentMethodTextActive: {
     color: '#6366f1',
     fontWeight: '600',
+  },
+  cashPaymentContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+  },
+  cashLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  cashInput: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    padding: 16,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+  },
+  changeContainer: {
+    marginTop: 16,
+    backgroundColor: '#dcfce7',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  changeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#166534',
+  },
+  changeAmount: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#15803d',
+  },
+  warningContainer: {
+    marginTop: 16,
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  warningText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#991b1b',
   },
   totalContainer: {
     flexDirection: 'row',
