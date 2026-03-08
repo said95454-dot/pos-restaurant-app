@@ -218,7 +218,7 @@ export default function POSScreen() {
 
     setProcessing(true);
     try {
-      const orderData = {
+      const orderData: any = {
         customer_name: customerName,
         items: cart,
         total: calculateTotal(),
@@ -226,6 +226,12 @@ export default function POSScreen() {
         cashier_id: cashier?.id || null,
         cashier_name: cashier?.name || null,
       };
+
+      // Agregar información de cambio si es pago en efectivo
+      if (paymentMethod === 'cash') {
+        orderData.amount_received = parseFloat(amountReceived);
+        orderData.change = calculateChange();
+      }
 
       const createdOrder = await api.createOrder(orderData);
       
@@ -492,6 +498,26 @@ export default function POSScreen() {
               font-size: 16px; 
               font-weight: bold;
             }
+            .payment-details {
+              margin-top: 15px;
+              padding: 12px;
+              background-color: #f8fafc;
+              border-radius: 8px;
+            }
+            .payment-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 4px 0;
+              font-size: 14px;
+            }
+            .change-highlight {
+              background-color: #dcfce7;
+              padding: 8px;
+              border-radius: 6px;
+              margin-top: 8px;
+              font-weight: bold;
+              color: #166534;
+            }
             .footer {
               text-align: center;
               margin-top: 20px;
@@ -525,6 +551,20 @@ export default function POSScreen() {
               </tr>
             </tbody>
           </table>
+          ${order.payment_method === 'cash' && order.amount_received ? `
+            <div class="payment-details">
+              <div class="payment-row">
+                <span><strong>Recibido:</strong></span>
+                <span><strong>$${order.amount_received.toFixed(2)}</strong></span>
+              </div>
+              <div class="change-highlight">
+                <div class="payment-row">
+                  <span>CAMBIO:</span>
+                  <span style="font-size: 18px;">$${order.change.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          ` : ''}
           <p class="footer">¡Gracias por su compra!</p>
         </body>
       </html>
