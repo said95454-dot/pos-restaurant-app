@@ -81,8 +81,9 @@ export default function Home() {
     try {
       const cashiers = await api.getCashiers();
       // Verificar si hay al menos un cajero activo
-      const activeCashiers = cashiers.filter((c: any) => c.is_active);
+      const activeCashiers = cashiers.filter((c: any) => c.active !== false);
       setHasCashiers(activeCashiers.length > 0);
+      console.log('Cajeros encontrados:', cashiers.length, 'Activos:', activeCashiers.length);
     } catch (error) {
       console.error('Error checking cashiers:', error);
       setHasCashiers(false);
