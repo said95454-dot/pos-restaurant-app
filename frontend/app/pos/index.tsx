@@ -60,7 +60,9 @@ export default function POSScreen() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showDailyHistory, setShowDailyHistory] = useState(false);
+  const [showCashierSales, setShowCashierSales] = useState(false);
   const [dailyOrders, setDailyOrders] = useState<any[]>([]);
+  const [cashierOrders, setCashierOrders] = useState<any[]>([]);
   
   // Animation for shine effect
   const shineAnim = useRef(new Animated.Value(0)).current;
@@ -114,6 +116,26 @@ export default function POSScreen() {
     } catch (error) {
       console.error('Error loading daily orders:', error);
       Alert.alert('Error', 'No se pudieron cargar las órdenes del día');
+    }
+  };
+
+  const loadCashierSales = async () => {
+    try {
+      if (!cashier) {
+        Alert.alert('Error', 'No hay cajero logueado');
+        return;
+      }
+      
+      const today = new Date().toISOString().split('T')[0];
+      const allOrders = await api.getOrders(today);
+      
+      // Filtrar solo las órdenes de este cajero
+      const mySales = allOrders.filter((order: any) => order.cashier_id === cashier.id);
+      setCashierOrders(mySales);
+      setShowCashierSales(true);
+    } catch (error) {
+      console.error('Error loading cashier sales:', error);
+      Alert.alert('Error', 'No se pudieron cargar tus ventas');
     }
   };
 
@@ -638,6 +660,11 @@ export default function POSScreen() {
               <Text style={styles.cashierName}>{cashier.name}</Text>
             </TouchableOpacity>
           )}
+          {cashier && (
+            <TouchableOpacity onPress={loadCashierSales} style={styles.historyButton}>
+              <Ionicons name="cash" size={24} color="white" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={loadDailyOrders} style={styles.historyButton}>
             <Ionicons name="list" size={24} color="white" />
           </TouchableOpacity>
@@ -895,6 +922,135 @@ export default function POSScreen() {
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Cashier Sales Modal */}
+      <Modal
+        visible={showCashierSales}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowCashierSales(false)}
+      >
+        <View style={styles.historyContainer}>
+          <LinearGradient colors={['#10b981', '#059669']} style={styles.historyHeader}>
+            <TouchableOpacity onPress={() => setShowCashierSales(false)}>
+              <Ionicons name="close" size={28} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.historyTitle}>Mis Ventas</Text>
+            <TouchableOpacity onPress={loadCashierSales}>
+              <Ionicons name="refresh" size={24} color="white" />
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <ScrollView style={styles.historyContent}>
+            {cashierOrders.length === 0 ? (
+              <View style={styles.emptyHistory}>
+                <Ionicons name="cash-outline" size={64} color="#94a3b8" />
+                <Text style={styles.emptyHistoryText}>No has registrado ventas hoy</Text>
+                <Text style={styles.emptyHistorySubtext}>Tus ventas aparecerán aquí</Text>
+              </View>
+            ) : (
+              <>
+                {/* Summary Card */}
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryTitle}>Mi Resumen del Día</Text>
+                  {cashier && (
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Cajero:</Text>
+                      <Text style={styles.summaryValue}>{cashier.name}</Text>
+                    </View>
+                  )}
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Órdenes Registradas:</Text>
+                    <Text style={styles.summaryValue}>{cashierOrders.length}</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Total Vendido:</Text>
+                    <Text style={styles.summaryValueHighlight}>
+                      ${cashierOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryDivider} />
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Efectivo:</Text>
+                    <Text style={styles.summaryValue}>
+                      ${cashierOrders
+                        .filter(o => o.payment_method === 'cash')
+                        .reduce((sum, order) => sum + order.total, 0)
+                        .toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Tarjeta:</Text>
+                    <Text style={styles.summaryValue}>
+                      ${cashierOrders
+                        .filter(o => o.payment_method === 'card')
+                        .reduce((sum, order) => sum + order.total, 0)
+                        .toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Transferencia:</Text>
+                    <Text style={styles.summaryValue}>
+                      ${cashierOrders
+                        .filter(o => o.payment_method === 'transfer')
+                        .reduce((sum, order) => sum + order.total, 0)
+                        .toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Orders List */}
+                {cashierOrders.map((order) => (
+                  <View key={order.id} style={styles.historyOrderCard}>
+                    <View style={styles.historyOrderHeader}>
+                      <View style={styles.orderHeaderLeft}>
+                        <Ionicons name="person" size={18} color="#10b981" />
+                        <Text style={styles.historyCustomerName}>{order.customer_name}</Text>
+                      </View>
+                      <Text style={styles.historyOrderTime}>
+                        {new Date(order.created_at).toLocaleTimeString('es-MX', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+                    <View style={styles.historyOrderItems}>
+                      {order.items.map((item: any, idx: number) => (
+                        <View key={idx}>
+                          <Text style={styles.historyItem}>
+                            {item.quantity}x {item.product_name} - ${item.subtotal.toFixed(2)}
+                          </Text>
+                          {item.selected_options && Array.isArray(item.selected_options) && item.selected_options.length > 0 && (
+                            <Text style={styles.historyItemOptions}>
+                              {item.selected_options.join(', ')}
+                            </Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                    <View style={styles.historyOrderFooter}>
+                      <Text style={styles.historyPaymentMethod}>
+                        {order.payment_method === 'cash' ? '💵 Efectivo' : 
+                         order.payment_method === 'card' ? '💳 Tarjeta' : '📱 Transferencia'}
+                      </Text>
+                      <Text style={styles.historyOrderTotal}>
+                        Total: ${order.total.toFixed(2)}
+                      </Text>
+                    </View>
+                    {order.payment_method === 'cash' && order.change && (
+                      <View style={styles.changeInfo}>
+                        <Text style={styles.changeText}>
+                          Recibido: ${order.amount_received?.toFixed(2)} | Cambio: ${order.change.toFixed(2)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
+          </ScrollView>
+        </View>
       </Modal>
 
       {/* Daily History Modal */}
@@ -1622,6 +1778,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#10b981',
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 8,
+  },
+  changeInfo: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  changeText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontStyle: 'italic',
   },
   historyOrderCard: {
     backgroundColor: 'white',
