@@ -267,13 +267,18 @@ export default function POSScreen() {
         resetOrderState();
       }
     } catch (error: any) {
-      console.error('Error saving ticket:', error);
-      // Si el usuario canceló o hubo error, volver a mostrar opciones
-      if (error.message && error.message.includes('cancel')) {
-        // Usuario canceló, volver a mostrar opciones
+      const errorMessage = error?.message || '';
+      const isCancellation = 
+        errorMessage.includes('cancel') ||
+        errorMessage.includes('User cancelled') ||
+        errorMessage.includes('dismissed');
+      
+      if (isCancellation) {
+        // Usuario canceló, volver a opciones sin error en consola
         showTicketOptions(order);
       } else {
-        // Error real, mostrar mensaje y volver a opciones
+        // Error real
+        console.error('Error saving ticket:', error);
         Alert.alert('Error', 'No se pudo guardar el ticket', [
           {
             text: 'Reintentar',
@@ -293,9 +298,22 @@ export default function POSScreen() {
       // Si llegó aquí sin error, la impresión se completó
       resetOrderState();
     } catch (error: any) {
-      console.error('Error printing ticket:', error);
-      // El usuario canceló o hubo error, volver a mostrar opciones
-      showTicketOptions(order);
+      // Manejo silencioso de cancelación
+      const errorMessage = error?.message || '';
+      const isCancellation = 
+        errorMessage.includes('cancel') || 
+        errorMessage.includes('User') ||
+        errorMessage.includes('did not complete') ||
+        error.code === 'E_PRINT_INCOMPLETE';
+      
+      if (isCancellation) {
+        // Usuario canceló, volver a opciones sin mostrar error en consola
+        showTicketOptions(order);
+      } else {
+        // Error real, registrar y mostrar opciones
+        console.error('Error printing ticket:', error);
+        showTicketOptions(order);
+      }
     }
   };
 
