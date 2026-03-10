@@ -128,48 +128,35 @@ export default function POSScreen() {
       
       console.log('Loading sales for cashier:', cashier.name, cashier.id);
       
-      // Intentar cargar TODAS las órdenes sin filtro de fecha
-      let allOrders = [];
+      // Obtener fecha de hoy
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Intentar cargar ventas del cajero directamente del endpoint específico
       try {
-        allOrders = await api.getOrders(); // Sin parámetro de fecha
-        console.log('Total orders loaded:', allOrders.length);
+        const salesData = await api.getCashierSales(cashier.id, today);
+        console.log('Cashier sales data:', salesData);
+        
+        // El endpoint devuelve un objeto con orders array
+        if (salesData && Array.isArray(salesData.orders)) {
+          setCashierOrders(salesData.orders);
+        } else {
+          console.log('No orders found in response');
+          setCashierOrders([]);
+        }
+        
+        setShowCashierSales(true);
       } catch (apiError: any) {
         console.error('API error:', apiError);
+        Alert.alert(
+          'Error al cargar ventas',
+          apiError.message || 'No se pudieron cargar tus ventas del día'
+        );
         setCashierOrders([]);
         setShowCashierSales(true);
-        return;
       }
-      
-      if (!Array.isArray(allOrders)) {
-        console.error('Orders is not an array:', allOrders);
-        setCashierOrders([]);
-        setShowCashierSales(true);
-        return;
-      }
-      
-      // Filtrar por cajero Y por fecha de hoy manualmente
-      const today = new Date().toISOString().split('T')[0];
-      const mySales = allOrders.filter((order: any) => {
-        if (!order || !order.cashier_id) return false;
-        
-        // Verificar que sea del cajero
-        const orderCashierId = String(order.cashier_id);
-        const currentCashierId = String(cashier.id);
-        const isMyCashier = orderCashierId === currentCashierId;
-        
-        // Verificar que sea de hoy
-        const orderDate = order.created_at ? new Date(order.created_at).toISOString().split('T')[0] : null;
-        const isToday = orderDate === today;
-        
-        return isMyCashier && isToday;
-      });
-      
-      console.log('My sales today:', mySales.length);
-      
-      setCashierOrders(mySales);
-      setShowCashierSales(true);
     } catch (error: any) {
       console.error('Error loading cashier sales:', error);
+      Alert.alert('Error', 'Ocurrió un error inesperado');
       setCashierOrders([]);
       setShowCashierSales(true);
     }

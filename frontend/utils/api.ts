@@ -241,6 +241,20 @@ export const api = {
   getCashierSales: async (cashierId: string, dateFilter?: string) => {
     const params = dateFilter ? `?date_filter=${dateFilter}` : '';
     const response = await fetch(`${API_URL}/api/cashiers/${cashierId}/sales${params}`);
+    
+    // Verificar que la respuesta sea exitosa
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    // Verificar que sea JSON antes de parsear
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 };
