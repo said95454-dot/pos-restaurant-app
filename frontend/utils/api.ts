@@ -5,6 +5,18 @@ export const api = {
   // Business
   getBusiness: async () => {
     const response = await fetch(`${API_URL}/api/business`);
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 
@@ -20,6 +32,18 @@ export const api = {
   // Products
   getProducts: async () => {
     const response = await fetch(`${API_URL}/api/products`);
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 
@@ -193,6 +217,18 @@ export const api = {
   // Cashiers (Cajeros)
   getCashiers: async () => {
     const response = await fetch(`${API_URL}/api/cashiers`);
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 
