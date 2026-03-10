@@ -26,6 +26,18 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 
@@ -123,9 +135,27 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
+    
     if (!response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const error = await response.json();
+          throw new Error(error.detail || 'Invalid credentials');
+        } catch (e) {
+          throw new Error('Invalid credentials');
+        }
+      }
       throw new Error('Invalid credentials');
     }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 
@@ -144,6 +174,18 @@ export const api = {
 
   checkSetup: async () => {
     const response = await fetch(`${API_URL}/api/auth/check-setup`);
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 
@@ -153,6 +195,18 @@ export const api = {
       ? `${API_URL}/api/stats/daily?date_str=${dateStr}`
       : `${API_URL}/api/stats/daily`;
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('El servidor no devolvió datos válidos');
+    }
+    
     return response.json();
   },
 
