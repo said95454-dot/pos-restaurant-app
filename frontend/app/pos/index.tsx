@@ -631,7 +631,7 @@ export default function POSScreen() {
       {/* Header */}
       <LinearGradient colors={['#6366f1', '#4f46e5']} style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={20} color="white" />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
           {/* Resplandor de fondo */}
@@ -681,21 +681,21 @@ export default function POSScreen() {
                 );
               }}
             >
-              <Ionicons name="person" size={14} color="white" />
+              <Ionicons name="person" size={12} color="white" />
               <Text style={styles.cashierName} numberOfLines={1}>{cashier.name}</Text>
             </TouchableOpacity>
           )}
           {cashier && (
             <TouchableOpacity onPress={loadCashierSales} style={styles.historyButton}>
-              <Ionicons name="cash" size={22} color="white" />
+              <Ionicons name="cash" size={20} color="white" />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={loadDailyOrders} style={styles.historyButton}>
-            <Ionicons name="list" size={22} color="white" />
+            <Ionicons name="list" size={20} color="white" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowCheckoutModal(true)} style={styles.historyButton}>
             <View style={styles.cartBadge}>
-              <Ionicons name="cart" size={22} color="white" />
+              <Ionicons name="cart" size={20} color="white" />
               {cart.length > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{cart.length}</Text>
@@ -1257,21 +1257,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 48,
-    paddingBottom: 16,
-    paddingHorizontal: 12,
-    minHeight: 80,
+    paddingBottom: 12,
+    paddingHorizontal: 8,
+    minHeight: 72,
   },
   backButton: {
-    padding: 8,
-    minWidth: 40,
+    padding: 4,
+    minWidth: 32,
     flexShrink: 0,
   },
   titleContainer: {
     position: 'relative',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
     flex: 1,
-    maxWidth: '40%',
+    maxWidth: '30%',
     alignItems: 'center',
   },
   glowBackground: {
@@ -1305,15 +1305,14 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '900',
     color: '#ffffff',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     textShadowColor: 'rgba(99, 102, 241, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
     textAlign: 'center',
-    numberOfLines: 1,
   },
   shineOverlay: {
     position: 'absolute',
@@ -1328,36 +1327,35 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -6,
+    right: -6,
     backgroundColor: '#ef4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   badgeText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
   },
   cashierBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 15,
-    gap: 4,
-    marginRight: 6,
-    maxWidth: 120,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 3,
+    marginRight: 4,
+    maxWidth: 90,
   },
   cashierName: {
     color: 'white',
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
-    numberOfLines: 1,
   },
   content: {
     flex: 1,
@@ -1736,13 +1734,13 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
     flexShrink: 0,
     flexWrap: 'nowrap',
   },
   historyButton: {
-    padding: 6,
-    minWidth: 36,
+    padding: 4,
+    minWidth: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
