@@ -690,9 +690,6 @@ export default function POSScreen() {
               <Ionicons name="cash" size={20} color="white" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={loadDailyOrders} style={styles.historyButton}>
-            <Ionicons name="list" size={20} color="white" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowCheckoutModal(true)} style={styles.historyButton}>
             <View style={styles.cartBadge}>
               <Ionicons name="cart" size={20} color="white" />
