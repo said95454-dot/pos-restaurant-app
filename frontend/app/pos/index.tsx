@@ -654,7 +654,9 @@ export default function POSScreen() {
                 },
               ]}
             />
-            <Text style={styles.headerTitle}>{businessName}</Text>
+            <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+              {businessName}
+            </Text>
           </View>
         </View>
         <View style={styles.headerActions}>
@@ -679,21 +681,21 @@ export default function POSScreen() {
                 );
               }}
             >
-              <Ionicons name="person" size={16} color="white" />
-              <Text style={styles.cashierName}>{cashier.name}</Text>
+              <Ionicons name="person" size={14} color="white" />
+              <Text style={styles.cashierName} numberOfLines={1}>{cashier.name}</Text>
             </TouchableOpacity>
           )}
           {cashier && (
             <TouchableOpacity onPress={loadCashierSales} style={styles.historyButton}>
-              <Ionicons name="cash" size={24} color="white" />
+              <Ionicons name="cash" size={22} color="white" />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={loadDailyOrders} style={styles.historyButton}>
-            <Ionicons name="list" size={24} color="white" />
+            <Ionicons name="list" size={22} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowCheckoutModal(true)}>
+          <TouchableOpacity onPress={() => setShowCheckoutModal(true)} style={styles.historyButton}>
             <View style={styles.cartBadge}>
-              <Ionicons name="cart" size={24} color="white" />
+              <Ionicons name="cart" size={22} color="white" />
               {cart.length > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{cart.length}</Text>
@@ -1256,15 +1258,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 48,
     paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    minHeight: 80,
   },
   backButton: {
     padding: 8,
+    minWidth: 40,
+    flexShrink: 0,
   },
   titleContainer: {
     position: 'relative',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 8,
+    flex: 1,
+    maxWidth: '40%',
+    alignItems: 'center',
   },
   glowBackground: {
     position: 'absolute',
@@ -1297,13 +1305,15 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '900',
     color: '#ffffff',
-    letterSpacing: 2,
+    letterSpacing: 1,
     textShadowColor: 'rgba(99, 102, 241, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
+    textAlign: 'center',
+    numberOfLines: 1,
   },
   shineOverlay: {
     position: 'absolute',
@@ -1336,16 +1346,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 15,
-    gap: 6,
-    marginRight: 10,
+    gap: 4,
+    marginRight: 6,
+    maxWidth: 120,
   },
   cashierName: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
+    numberOfLines: 1,
   },
   content: {
     flex: 1,
@@ -1724,10 +1736,15 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 8,
+    flexShrink: 0,
+    flexWrap: 'nowrap',
   },
   historyButton: {
-    padding: 8,
+    padding: 6,
+    minWidth: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   historyContainer: {
     flex: 1,
