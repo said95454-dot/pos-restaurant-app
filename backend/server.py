@@ -540,7 +540,8 @@ async def get_cashier_sales(cashier_id: str, date_filter: Optional[str] = None):
     if date_filter:
         query["date"] = date_filter
     
-    orders = await db.orders.find(query).sort("created_at", -1).to_list(1000)
+    # Excluir el campo _id de MongoDB
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     
     total_sales = sum(o.get("total", 0) for o in orders)
     total_orders = len(orders)
