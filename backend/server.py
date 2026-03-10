@@ -262,7 +262,8 @@ async def get_orders(date_filter: Optional[str] = None, cashier_id: Optional[str
         query["date"] = date_filter
     if cashier_id:
         query["cashier_id"] = cashier_id
-    orders = await db.orders.find(query).sort("created_at", -1).to_list(1000)
+    # Excluir el campo _id de MongoDB
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     
     # Convertir órdenes antiguas al nuevo formato
     result = []
@@ -333,7 +334,8 @@ async def get_daily_sales(date_str: Optional[str] = None):
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
     
-    orders = await db.orders.find({"date": date_str}).to_list(1000)
+    # Excluir el campo _id de MongoDB
+    orders = await db.orders.find({"date": date_str}, {"_id": 0}).to_list(1000)
     
     total_orders = len(orders)
     total_sales = sum(order["total"] for order in orders)
@@ -352,9 +354,10 @@ async def get_daily_sales(date_str: Optional[str] = None):
 
 @api_router.get("/stats/range")
 async def get_sales_range(start_date: str, end_date: str):
+    # Excluir el campo _id de MongoDB
     orders = await db.orders.find({
         "date": {"$gte": start_date, "$lte": end_date}
-    }).to_list(10000)
+    }, {"_id": 0}).to_list(10000)
     
     # Group by date
     daily_stats = {}
@@ -388,7 +391,8 @@ async def get_top_products(date_str: Optional[str] = None, limit: int = 5):
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
     
-    orders = await db.orders.find({"date": date_str}).to_list(10000)
+    # Excluir el campo _id de MongoDB
+    orders = await db.orders.find({"date": date_str}, {"_id": 0}).to_list(10000)
     
     # Count products sold
     product_sales = {}
