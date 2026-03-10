@@ -128,31 +128,37 @@ export default function POSScreen() {
       
       console.log('Loading sales for cashier:', cashier.name, cashier.id);
       
+      // Obtener fecha de hoy
       const today = new Date().toISOString().split('T')[0];
-      const allOrders = await api.getOrders(today);
       
-      console.log('Total orders today:', allOrders.length);
-      console.log('Cashier ID:', cashier.id);
-      
-      // Filtrar solo las órdenes de este cajero (comparar ambos como strings)
-      const mySales = allOrders.filter((order: any) => {
-        const orderCashierId = order.cashier_id ? String(order.cashier_id) : null;
-        const currentCashierId = String(cashier.id);
-        return orderCashierId === currentCashierId;
-      });
-      
-      console.log('My sales:', mySales.length);
-      
-      setCashierOrders(mySales);
-      setShowCashierSales(true);
+      // Intentar cargar ventas del cajero directamente del endpoint específico
+      try {
+        const salesData = await api.getCashierSales(cashier.id, today);
+        console.log('Cashier sales data:', salesData);
+        
+        // El endpoint devuelve un objeto con orders array
+        if (salesData && Array.isArray(salesData.orders)) {
+          setCashierOrders(salesData.orders);
+        } else {
+          console.log('No orders found in response');
+          setCashierOrders([]);
+        }
+        
+        setShowCashierSales(true);
+      } catch (apiError: any) {
+        console.error('API error:', apiError);
+        Alert.alert(
+          'Error al cargar ventas',
+          apiError.message || 'No se pudieron cargar tus ventas del día'
+        );
+        setCashierOrders([]);
+        setShowCashierSales(true);
+      }
     } catch (error: any) {
       console.error('Error loading cashier sales:', error);
-      console.error('Error details:', error.message);
-      Alert.alert(
-        'Error', 
-        `No se pudieron cargar tus ventas.\n\n${error.message || 'Error desconocido'}`,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Ocurrió un error inesperado');
+      setCashierOrders([]);
+      setShowCashierSales(true);
     }
   };
 
