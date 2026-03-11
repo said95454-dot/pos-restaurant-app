@@ -703,8 +703,8 @@ export default function POSScreen() {
         </View>
       </LinearGradient>
 
-      {/* Products Grid */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.productsGrid}>
+      {/* Products List */}
+      <ScrollView style={styles.content} contentContainerStyle={styles.productsList}>
         {products.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={64} color="#94a3b8" />
@@ -716,8 +716,8 @@ export default function POSScreen() {
             <TouchableOpacity
               key={product.id}
               style={[
-                styles.productCard,
-                product.category === 'bebida' && styles.beverageCard
+                styles.productListItem,
+                product.category === 'bebida' && styles.beverageListItem
               ]}
               onPress={() => handleProductClick(product)}
               activeOpacity={0.7}
@@ -725,32 +725,35 @@ export default function POSScreen() {
               {product.image ? (
                 <Image
                   source={{ uri: product.image }}
-                  style={styles.productImage}
+                  style={styles.productListImage}
                   resizeMode="cover"
                 />
               ) : (
-                <View style={[styles.productImage, styles.noImage]}>
+                <View style={[styles.productListImage, styles.noImageList]}>
                   <Ionicons 
                     name={product.category === 'bebida' ? 'beer' : 'fast-food'} 
-                    size={48} 
+                    size={32} 
                     color={product.category === 'bebida' ? '#06b6d4' : '#94a3b8'} 
                   />
                 </View>
               )}
-              <View style={styles.productInfo}>
-                <Text style={styles.productName} numberOfLines={2}>
-                  {product.name}
-                </Text>
+              <View style={styles.productListInfo}>
+                <View style={styles.productListHeader}>
+                  <Text style={styles.productListName} numberOfLines={2}>
+                    {product.name}
+                  </Text>
+                  {product.category === 'bebida' && (
+                    <View style={styles.beverageListBadge}>
+                      <Ionicons name="beer" size={12} color="#06b6d4" />
+                    </View>
+                  )}
+                </View>
                 <Text style={[
-                  styles.productPrice,
-                  product.category === 'bebida' && styles.beveragePrice
+                  styles.productListPrice,
+                  product.category === 'bebida' && styles.beverageListPrice
                 ]}>${product.price.toFixed(2)}</Text>
-                {product.category === 'bebida' && (
-                  <View style={styles.beverageBadge}>
-                    <Text style={styles.beverageBadgeText}>Bebida</Text>
-                  </View>
-                )}
               </View>
+              <Ionicons name="chevron-forward" size={20} color="#94a3b8" style={styles.productListArrow} />
             </TouchableOpacity>
           ))
         )}
@@ -1362,6 +1365,71 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
+  },
+  productsList: {
+    padding: 12,
+    gap: 10,
+  },
+  productListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  beverageListItem: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#06b6d4',
+  },
+  productListImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  noImageList: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productListInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  productListHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  productListName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    flex: 1,
+  },
+  productListPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366f1',
+  },
+  beverageListPrice: {
+    color: '#06b6d4',
+  },
+  beverageListBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#e0f2fe',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productListArrow: {
+    marginLeft: 8,
   },
   productCard: {
     width: '47%',
