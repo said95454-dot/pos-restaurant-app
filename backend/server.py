@@ -1,15 +1,17 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from passlib.context import CryptContext
+import jwt
 
 
 ROOT_DIR = Path(__file__).parent
@@ -23,6 +25,43 @@ db = client[os.environ['DB_NAME']]
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# JWT Configuration
+JWT_SECRET = os.environ.get('JWT_SECRET', 'tu-secreto-super-seguro-cambiar-en-produccion')
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_DAYS = 7
+
+# Security
+security = HTTPBearer(auto_error=False)
+
+# Helper functions for JWT
+def create_access_token(restaurant_id: str, email: str) -> str:
+    expiration = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRATION_DAYS)
+    payload = {
+        "restaurant_id": restaurant_id,
+        "email": email,
+        "exp": expiration
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def decode_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expirado")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+async def get_current_restaurant(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    token = credentials.credentials
+    payload = decode_token(token)
+    restaurant = await db.restaurants.find_one({"id": payload["restaurant_id"]}, {"_id": 0, "password_hash": 0})
+    if not restaurant:
+        raise HTTPException(status_code=401, detail="Restaurante no encontrado")
+    return restaurant
+
 # Create the main app without a prefix
 app = FastAPI()
 
@@ -31,6 +70,36 @@ api_router = APIRouter(prefix="/api")
 
 
 # ============= MODELS =============
+
+# Restaurant Models (Multi-tenant)
+class RestaurantRegister(BaseModel):
+    email: str
+    password: str
+    restaurant_name: str
+
+class RestaurantLogin(BaseModel):
+    email: str
+    password: str
+
+class Restaurant(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: str
+    password_hash: str
+    restaurant_name: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class RestaurantResponse(BaseModel):
+    id: str
+    email: str
+    restaurant_name: str
+    created_at: str
+
+class AuthTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    restaurant_id: str
+    email: str
+    restaurant_name: str
 
 # Business Settings
 class Business(BaseModel):
@@ -188,7 +257,67 @@ class TopProduct(BaseModel):
 
 @api_router.get("/")
 async def root():
-    return {"message": "Food POS API"}
+    return {"message": "Food POS API - Multi-tenant"}
+
+# ========= Restaurant Auth Routes (Multi-tenant) =========
+@api_router.post("/auth/restaurant/register", response_model=AuthTokenResponse)
+async def register_restaurant(data: RestaurantRegister):
+    # Check if email already exists
+    existing = await db.restaurants.find_one({"email": data.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    
+    # Create restaurant
+    restaurant_id = str(uuid.uuid4())
+    restaurant_doc = {
+        "id": restaurant_id,
+        "email": data.email.lower(),
+        "password_hash": pwd_context.hash(data.password),
+        "restaurant_name": data.restaurant_name,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.restaurants.insert_one(restaurant_doc)
+    
+    # Generate token
+    access_token = create_access_token(restaurant_id, data.email.lower())
+    
+    return AuthTokenResponse(
+        access_token=access_token,
+        restaurant_id=restaurant_id,
+        email=data.email.lower(),
+        restaurant_name=data.restaurant_name
+    )
+
+@api_router.post("/auth/restaurant/login", response_model=AuthTokenResponse)
+async def login_restaurant(data: RestaurantLogin):
+    # Find restaurant
+    restaurant = await db.restaurants.find_one({"email": data.email.lower()})
+    if not restaurant:
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    
+    # Verify password
+    if not pwd_context.verify(data.password, restaurant["password_hash"]):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    
+    # Generate token
+    access_token = create_access_token(restaurant["id"], restaurant["email"])
+    
+    return AuthTokenResponse(
+        access_token=access_token,
+        restaurant_id=restaurant["id"],
+        email=restaurant["email"],
+        restaurant_name=restaurant["restaurant_name"]
+    )
+
+@api_router.get("/auth/me", response_model=RestaurantResponse)
+async def get_current_restaurant_info(restaurant: dict = Depends(get_current_restaurant)):
+    return RestaurantResponse(
+        id=restaurant["id"],
+        email=restaurant["email"],
+        restaurant_name=restaurant["restaurant_name"],
+        created_at=restaurant["created_at"]
+    )
 
 # ========= Business Routes =========
 @api_router.get("/business", response_model=Business)
