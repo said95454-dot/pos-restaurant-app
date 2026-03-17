@@ -399,13 +399,16 @@ async def forgot_password(data: PasswordResetRequest):
 
 @api_router.post("/auth/reset-password")
 async def reset_password(data: PasswordResetConfirm):
-    # Find valid token (check first 8 chars uppercase)
-    reset_record = await db.password_resets.find_one({
-        "used": False
-    })
+    # Find token that matches (first 8 chars)
+    all_tokens = await db.password_resets.find({"used": False}).to_list(100)
     
-    # Check if token matches (first 8 chars)
-    if not reset_record or not reset_record["token"].upper().startswith(data.token.upper()[:8]):
+    reset_record = None
+    for record in all_tokens:
+        if record["token"][:8].upper() == data.token.upper()[:8]:
+            reset_record = record
+            break
+    
+    if not reset_record:
         raise HTTPException(status_code=400, detail="Código inválido o expirado")
     
     # Check expiration
