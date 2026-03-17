@@ -5,13 +5,16 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
+import secrets
 from datetime import datetime, date, timedelta, timezone
 from passlib.context import CryptContext
 import jwt
+import resend
 
 
 ROOT_DIR = Path(__file__).parent
@@ -32,6 +35,10 @@ JWT_EXPIRATION_DAYS = 7
 
 # Security
 security = HTTPBearer(auto_error=False)
+
+# Resend Configuration
+resend.api_key = os.environ.get('RESEND_API_KEY')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
 # Helper functions for JWT
 def create_access_token(restaurant_id: str, email: str) -> str:
@@ -100,6 +107,14 @@ class AuthTokenResponse(BaseModel):
     restaurant_id: str
     email: str
     restaurant_name: str
+
+# Password Recovery Models
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
 
 # Business Settings
 class Business(BaseModel):
@@ -318,6 +333,103 @@ async def get_current_restaurant_info(restaurant: dict = Depends(get_current_res
         restaurant_name=restaurant["restaurant_name"],
         created_at=restaurant["created_at"]
     )
+
+# ========= Password Recovery Routes =========
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: PasswordResetRequest):
+    # Find restaurant by email
+    restaurant = await db.restaurants.find_one({"email": data.email.lower()})
+    
+    # Always return success to prevent email enumeration
+    if not restaurant:
+        return {"message": "Si el email existe, recibirás un enlace de recuperación"}
+    
+    # Generate reset token
+    reset_token = secrets.token_urlsafe(32)
+    expiration = datetime.now(timezone.utc) + timedelta(hours=1)
+    
+    # Save token in database
+    await db.password_resets.update_one(
+        {"email": data.email.lower()},
+        {
+            "$set": {
+                "email": data.email.lower(),
+                "token": reset_token,
+                "expires_at": expiration.isoformat(),
+                "used": False
+            }
+        },
+        upsert=True
+    )
+    
+    # Send email
+    try:
+        reset_link = f"https://tu-app.com/reset-password?token={reset_token}"
+        
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #00f0ff;">Recuperar Contraseña</h2>
+            <p>Hola,</p>
+            <p>Recibimos una solicitud para restablecer tu contraseña en <strong>{restaurant['restaurant_name']}</strong>.</p>
+            <p>Tu código de recuperación es:</p>
+            <div style="background: #1a0a2e; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
+                <span style="color: #00f0ff; font-size: 32px; font-weight: bold; letter-spacing: 4px;">{reset_token[:8].upper()}</span>
+            </div>
+            <p>Este código expira en <strong>1 hora</strong>.</p>
+            <p>Si no solicitaste esto, ignora este email.</p>
+            <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">Sistema POS Multi-Restaurante</p>
+        </div>
+        """
+        
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [data.email.lower()],
+            "subject": f"Recuperar contraseña - {restaurant['restaurant_name']}",
+            "html": html_content
+        }
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        
+    except Exception as e:
+        logging.error(f"Error sending email: {e}")
+        # Don't expose error to user
+    
+    return {"message": "Si el email existe, recibirás un enlace de recuperación"}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: PasswordResetConfirm):
+    # Find valid token (check first 8 chars uppercase)
+    reset_record = await db.password_resets.find_one({
+        "used": False
+    })
+    
+    # Check if token matches (first 8 chars)
+    if not reset_record or not reset_record["token"].upper().startswith(data.token.upper()[:8]):
+        raise HTTPException(status_code=400, detail="Código inválido o expirado")
+    
+    # Check expiration
+    expires_at = datetime.fromisoformat(reset_record["expires_at"])
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="Código expirado")
+    
+    # Validate new password
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+    
+    # Update password
+    await db.restaurants.update_one(
+        {"email": reset_record["email"]},
+        {"$set": {"password_hash": pwd_context.hash(data.new_password)}}
+    )
+    
+    # Mark token as used
+    await db.password_resets.update_one(
+        {"_id": reset_record["_id"]},
+        {"$set": {"used": True}}
+    )
+    
+    return {"message": "Contraseña actualizada exitosamente"}
 
 # ========= Business Routes =========
 @api_router.get("/business", response_model=Business)
