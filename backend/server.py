@@ -705,11 +705,11 @@ async def delete_cash_register_close(close_id: str):
         raise HTTPException(status_code=404, detail="Corte de caja no encontrado")
     return {"message": "Corte de caja eliminado"}
 
-# ========= Cashier (Cajeros) Routes =========
+# ========= Cashier (Cajeros) Routes - Multi-tenant =========
 @api_router.get("/cashiers")
-async def get_cashiers():
-    cashiers = await db.cashiers.find().to_list(100)
-    # No devolver password_hash ni pin por seguridad
+async def get_cashiers(restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    cashiers = await db.cashiers.find({"restaurant_id": restaurant_id}).to_list(100)
     result = []
     for c in cashiers:
         result.append({
@@ -723,9 +723,11 @@ async def get_cashiers():
     return result
 
 @api_router.post("/cashiers")
-async def create_cashier(cashier: CashierCreate):
-    # Verificar si ya existe un cajero con ese nombre
-    existing = await db.cashiers.find_one({"name": cashier.name})
+async def create_cashier(cashier: CashierCreate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    
+    # Verificar si ya existe un cajero con ese nombre en este restaurante
+    existing = await db.cashiers.find_one({"name": cashier.name, "restaurant_id": restaurant_id})
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe un cajero con ese nombre")
     
@@ -734,12 +736,16 @@ async def create_cashier(cashier: CashierCreate):
         pin=cashier.pin if cashier.pin else None,
         password_hash=pwd_context.hash(cashier.password) if cashier.password else None
     )
-    await db.cashiers.insert_one(new_cashier.dict())
+    cashier_dict = new_cashier.dict()
+    cashier_dict["restaurant_id"] = restaurant_id
+    
+    await db.cashiers.insert_one(cashier_dict)
     return {"id": new_cashier.id, "name": new_cashier.name, "message": "Cajero creado"}
 
 @api_router.put("/cashiers/{cashier_id}")
-async def update_cashier(cashier_id: str, update: CashierUpdate):
-    cashier = await db.cashiers.find_one({"id": cashier_id})
+async def update_cashier(cashier_id: str, update: CashierUpdate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    cashier = await db.cashiers.find_one({"id": cashier_id, "restaurant_id": restaurant_id})
     if not cashier:
         raise HTTPException(status_code=404, detail="Cajero no encontrado")
     
@@ -754,28 +760,31 @@ async def update_cashier(cashier_id: str, update: CashierUpdate):
         update_data["active"] = update.active
     
     if update_data:
-        await db.cashiers.update_one({"id": cashier_id}, {"$set": update_data})
+        await db.cashiers.update_one({"id": cashier_id, "restaurant_id": restaurant_id}, {"$set": update_data})
     
     return {"message": "Cajero actualizado"}
 
 @api_router.delete("/cashiers/{cashier_id}")
-async def delete_cashier(cashier_id: str):
-    result = await db.cashiers.delete_one({"id": cashier_id})
+async def delete_cashier(cashier_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    result = await db.cashiers.delete_one({"id": cashier_id, "restaurant_id": restaurant_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Cajero no encontrado")
     return {"message": "Cajero eliminado"}
 
 @api_router.post("/cashiers/login")
-async def cashier_login(login: CashierLogin):
-    # Buscar por PIN
+async def cashier_login(login: CashierLogin, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    
+    # Buscar por PIN en este restaurante
     if login.pin:
-        cashier = await db.cashiers.find_one({"pin": login.pin, "active": True})
+        cashier = await db.cashiers.find_one({"pin": login.pin, "active": True, "restaurant_id": restaurant_id})
         if cashier:
             return {"success": True, "cashier_id": cashier["id"], "name": cashier["name"]}
     
     # Buscar por contraseña (necesita cashier_id)
     if login.password and login.cashier_id:
-        cashier = await db.cashiers.find_one({"id": login.cashier_id, "active": True})
+        cashier = await db.cashiers.find_one({"id": login.cashier_id, "active": True, "restaurant_id": restaurant_id})
         if cashier and cashier.get("password_hash"):
             if pwd_context.verify(login.password, cashier["password_hash"]):
                 return {"success": True, "cashier_id": cashier["id"], "name": cashier["name"]}
@@ -783,12 +792,12 @@ async def cashier_login(login: CashierLogin):
     raise HTTPException(status_code=401, detail="PIN o contraseña incorrectos")
 
 @api_router.get("/cashiers/{cashier_id}/sales")
-async def get_cashier_sales(cashier_id: str, date_filter: Optional[str] = None):
-    query = {"cashier_id": cashier_id}
+async def get_cashier_sales(cashier_id: str, restaurant: dict = Depends(get_current_restaurant), date_filter: Optional[str] = None):
+    restaurant_id = restaurant["id"]
+    query = {"cashier_id": cashier_id, "restaurant_id": restaurant_id}
     if date_filter:
         query["date"] = date_filter
     
-    # Excluir el campo _id de MongoDB
     orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     
     total_sales = sum(o.get("total", 0) for o in orders)
