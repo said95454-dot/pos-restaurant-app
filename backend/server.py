@@ -434,110 +434,124 @@ async def reset_password(data: PasswordResetConfirm):
     
     return {"message": "Contraseña actualizada exitosamente"}
 
-# ========= Business Routes =========
+# ========= Business Routes - Multi-tenant =========
 @api_router.get("/business", response_model=Business)
-async def get_business():
-    business = await db.business.find_one()
+async def get_business(restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    business = await db.business.find_one({"restaurant_id": restaurant_id})
     if not business:
-        # Create default business
-        default_business = Business(name="Mi Negocio")
-        await db.business.insert_one(default_business.dict())
+        default_business = Business(name=restaurant["restaurant_name"])
+        business_dict = default_business.dict()
+        business_dict["restaurant_id"] = restaurant_id
+        await db.business.insert_one(business_dict)
         return default_business
     return Business(**business)
 
 @api_router.put("/business", response_model=Business)
-async def update_business(update: BusinessUpdate):
-    business = await db.business.find_one()
+async def update_business(update: BusinessUpdate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    business = await db.business.find_one({"restaurant_id": restaurant_id})
     if not business:
-        business = Business(name="Mi Negocio")
-        await db.business.insert_one(business.dict())
+        default_business = Business(name=restaurant["restaurant_name"])
+        business_dict = default_business.dict()
+        business_dict["restaurant_id"] = restaurant_id
+        await db.business.insert_one(business_dict)
     
     update_data = {k: v for k, v in update.dict().items() if v is not None}
     if update_data:
-        await db.business.update_one({}, {"$set": update_data})
+        await db.business.update_one({"restaurant_id": restaurant_id}, {"$set": update_data})
     
-    updated_business = await db.business.find_one()
+    updated_business = await db.business.find_one({"restaurant_id": restaurant_id})
     return Business(**updated_business)
 
-# ========= Product Routes =========
+# ========= Product Routes - Multi-tenant =========
 @api_router.get("/products", response_model=List[Product])
-async def get_products():
-    products = await db.products.find().to_list(1000)
+async def get_products(restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    products = await db.products.find({"restaurant_id": restaurant_id}).to_list(1000)
     return [Product(**product) for product in products]
 
 @api_router.get("/products/{product_id}", response_model=Product)
-async def get_product(product_id: str):
-    product = await db.products.find_one({"id": product_id})
+async def get_product(product_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    product = await db.products.find_one({"id": product_id, "restaurant_id": restaurant_id})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return Product(**product)
 
 @api_router.post("/products", response_model=Product)
-async def create_product(product: ProductCreate):
+async def create_product(product: ProductCreate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
     new_product = Product(**product.dict())
-    await db.products.insert_one(new_product.dict())
+    product_dict = new_product.dict()
+    product_dict["restaurant_id"] = restaurant_id
+    await db.products.insert_one(product_dict)
     return new_product
 
 @api_router.put("/products/{product_id}", response_model=Product)
-async def update_product(product_id: str, update: ProductUpdate):
-    product = await db.products.find_one({"id": product_id})
+async def update_product(product_id: str, update: ProductUpdate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    product = await db.products.find_one({"id": product_id, "restaurant_id": restaurant_id})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
     update_data = {k: v for k, v in update.dict().items() if v is not None}
     if update_data:
-        await db.products.update_one({"id": product_id}, {"$set": update_data})
+        await db.products.update_one({"id": product_id, "restaurant_id": restaurant_id}, {"$set": update_data})
     
-    updated_product = await db.products.find_one({"id": product_id})
+    updated_product = await db.products.find_one({"id": product_id, "restaurant_id": restaurant_id})
     return Product(**updated_product)
 
 @api_router.delete("/products/{product_id}")
-async def delete_product(product_id: str):
-    result = await db.products.delete_one({"id": product_id})
+async def delete_product(product_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    result = await db.products.delete_one({"id": product_id, "restaurant_id": restaurant_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
     return {"message": "Product deleted successfully"}
 
-# ========= Order Routes =========
+# ========= Order Routes - Multi-tenant =========
 @api_router.get("/orders")
-async def get_orders(date_filter: Optional[str] = None, cashier_id: Optional[str] = None):
-    query = {}
+async def get_orders(restaurant: dict = Depends(get_current_restaurant), date_filter: Optional[str] = None, cashier_id: Optional[str] = None):
+    restaurant_id = restaurant["id"]
+    query = {"restaurant_id": restaurant_id}
     if date_filter:
         query["date"] = date_filter
     if cashier_id:
         query["cashier_id"] = cashier_id
-    # Excluir el campo _id de MongoDB
     orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     
-    # Convertir órdenes antiguas al nuevo formato
     result = []
     for order in orders:
-        # Convertir items con selected_options dict al nuevo formato list
         if "items" in order:
             for item in order["items"]:
                 if isinstance(item.get("selected_options"), dict):
-                    # Convertir dict a list de opciones activas
                     item["selected_options"] = [k for k, v in item["selected_options"].items() if v]
         result.append(order)
     
     return result
 
 @api_router.get("/orders/{order_id}", response_model=Order)
-async def get_order(order_id: str):
-    order = await db.orders.find_one({"id": order_id})
+async def get_order(order_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    order = await db.orders.find_one({"id": order_id, "restaurant_id": restaurant_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return Order(**order)
 
 @api_router.post("/orders", response_model=Order)
-async def create_order(order: OrderCreate):
+async def create_order(order: OrderCreate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
     new_order = Order(**order.dict())
-    await db.orders.insert_one(new_order.dict())
+    order_dict = new_order.dict()
+    order_dict["restaurant_id"] = restaurant_id
+    await db.orders.insert_one(order_dict)
     return new_order
 
 @api_router.put("/orders/{order_id}/print")
-async def mark_order_printed(order_id: str):
-    result = await db.orders.update_one({"id": order_id}, {"$set": {"printed": True}})
+async def mark_order_printed(order_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    result = await db.orders.update_one({"id": order_id, "restaurant_id": restaurant_id}, {"$set": {"printed": True}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
     return {"message": "Order marked as printed"}
@@ -572,14 +586,14 @@ async def check_setup():
     user_count = await db.users.count_documents({})
     return {"has_manager": user_count > 0}
 
-# ========= Statistics Routes =========
+# ========= Statistics Routes - Multi-tenant =========
 @api_router.get("/stats/daily", response_model=DailySales)
-async def get_daily_sales(date_str: Optional[str] = None):
+async def get_daily_sales(restaurant: dict = Depends(get_current_restaurant), date_str: Optional[str] = None):
+    restaurant_id = restaurant["id"]
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
     
-    # Excluir el campo _id de MongoDB
-    orders = await db.orders.find({"date": date_str}, {"_id": 0}).to_list(1000)
+    orders = await db.orders.find({"date": date_str, "restaurant_id": restaurant_id}, {"_id": 0}).to_list(1000)
     
     total_orders = len(orders)
     total_sales = sum(order["total"] for order in orders)
@@ -597,13 +611,13 @@ async def get_daily_sales(date_str: Optional[str] = None):
     )
 
 @api_router.get("/stats/range")
-async def get_sales_range(start_date: str, end_date: str):
-    # Excluir el campo _id de MongoDB
+async def get_sales_range(start_date: str, end_date: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
     orders = await db.orders.find({
-        "date": {"$gte": start_date, "$lte": end_date}
+        "date": {"$gte": start_date, "$lte": end_date},
+        "restaurant_id": restaurant_id
     }, {"_id": 0}).to_list(10000)
     
-    # Group by date
     daily_stats = {}
     for order in orders:
         order_date = order["date"]
@@ -629,16 +643,15 @@ async def get_sales_range(start_date: str, end_date: str):
     
     return {"daily_stats": list(daily_stats.values())}
 
-# ========= Top Products Route =========
+# ========= Top Products Route - Multi-tenant =========
 @api_router.get("/stats/top-products")
-async def get_top_products(date_str: Optional[str] = None, limit: int = 5):
+async def get_top_products(restaurant: dict = Depends(get_current_restaurant), date_str: Optional[str] = None, limit: int = 5):
+    restaurant_id = restaurant["id"]
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
     
-    # Excluir el campo _id de MongoDB
-    orders = await db.orders.find({"date": date_str}, {"_id": 0}).to_list(10000)
+    orders = await db.orders.find({"date": date_str, "restaurant_id": restaurant_id}, {"_id": 0}).to_list(10000)
     
-    # Count products sold
     product_sales = {}
     for order in orders:
         for item in order.get("items", []):
@@ -656,7 +669,6 @@ async def get_top_products(date_str: Optional[str] = None, limit: int = 5):
             product_sales[product_name]["quantity_sold"] += quantity
             product_sales[product_name]["total_revenue"] += subtotal
     
-    # Sort by quantity sold and limit
     sorted_products = sorted(
         product_sales.values(),
         key=lambda x: x["quantity_sold"],
@@ -665,15 +677,14 @@ async def get_top_products(date_str: Optional[str] = None, limit: int = 5):
     
     return {"top_products": sorted_products}
 
-# ========= Cash Register Close (Corte de Caja) Routes =========
+# ========= Cash Register Close - Multi-tenant =========
 @api_router.post("/cash-register/close", response_model=CashRegisterClose)
-async def close_cash_register(data: CashRegisterCloseCreate):
-    # Check if there's already a close for this date
-    existing = await db.cash_register_closes.find_one({"date": data.date})
+async def close_cash_register(data: CashRegisterCloseCreate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    existing = await db.cash_register_closes.find_one({"date": data.date, "restaurant_id": restaurant_id})
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe un corte de caja para esta fecha")
     
-    # Calculate expected and difference
     expected_cash = data.initial_cash + data.cash_sales
     difference = data.actual_cash - expected_cash
     
@@ -682,25 +693,30 @@ async def close_cash_register(data: CashRegisterCloseCreate):
         expected_cash=expected_cash,
         difference=difference
     )
+    close_dict = new_close.dict()
+    close_dict["restaurant_id"] = restaurant_id
     
-    await db.cash_register_closes.insert_one(new_close.dict())
+    await db.cash_register_closes.insert_one(close_dict)
     return new_close
 
 @api_router.get("/cash-register/closes", response_model=List[CashRegisterClose])
-async def get_cash_register_closes(limit: int = 30):
-    closes = await db.cash_register_closes.find().sort("close_time", -1).to_list(limit)
+async def get_cash_register_closes(restaurant: dict = Depends(get_current_restaurant), limit: int = 30):
+    restaurant_id = restaurant["id"]
+    closes = await db.cash_register_closes.find({"restaurant_id": restaurant_id}).sort("close_time", -1).to_list(limit)
     return [CashRegisterClose(**close) for close in closes]
 
 @api_router.get("/cash-register/close/{date_str}")
-async def get_cash_register_close(date_str: str):
-    close = await db.cash_register_closes.find_one({"date": date_str})
+async def get_cash_register_close(date_str: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    close = await db.cash_register_closes.find_one({"date": date_str, "restaurant_id": restaurant_id})
     if not close:
         return {"closed": False}
     return {"closed": True, "data": CashRegisterClose(**close)}
 
 @api_router.delete("/cash-register/close/{close_id}")
-async def delete_cash_register_close(close_id: str):
-    result = await db.cash_register_closes.delete_one({"id": close_id})
+async def delete_cash_register_close(close_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    result = await db.cash_register_closes.delete_one({"id": close_id, "restaurant_id": restaurant_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Corte de caja no encontrado")
     return {"message": "Corte de caja eliminado"}
