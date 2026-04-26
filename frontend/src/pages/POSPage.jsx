@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { productsApi, ordersApi, cashRegisterApi, statsApi } from '@/utils/api';
+import { productsApi, ordersApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Minus, Trash2, Search, ShoppingBag, Utensils, Coffee, Banknote, CreditCard, ArrowRightLeft, Loader2, X, Check, Receipt } from 'lucide-react';
+import { Plus, Minus, Search, ShoppingBag, Utensils, Coffee, Banknote, CreditCard, ArrowRightLeft, Loader2, X, Check, Receipt, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import AnimatedNumber from '@/components/AnimatedNumber';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -15,45 +17,34 @@ const POSPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('todos');
   const [search, setSearch] = useState('');
-  const [cart, setCart] = useState([]); // [{product, quantity, selected_options}]
+  const [cart, setCart] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [showOptionsFor, setShowOptionsFor] = useState(null); // product
+  const [showOptionsFor, setShowOptionsFor] = useState(null);
   const [tempOptions, setTempOptions] = useState([]);
   const [customer, setCustomer] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showCart, setShowCart] = useState(false); // mobile
+  const [showCart, setShowCart] = useState(false);
 
   const loadProducts = async () => {
-    try {
-      const list = await productsApi.list();
-      setProducts(list);
-    } catch (e) {
-      toast.error('No se pudieron cargar los productos');
-    } finally {
-      setLoading(false);
-    }
+    try { setProducts(await productsApi.list()); }
+    catch { toast.error('No se pudieron cargar los productos'); }
+    finally { setLoading(false); }
   };
   useEffect(() => { loadProducts(); }, []);
 
-  const filtered = useMemo(() => {
-    return products.filter(p => {
-      const catMatch = activeCategory === 'todos' || p.category === activeCategory;
-      const sMatch = !search || p.name.toLowerCase().includes(search.toLowerCase());
-      return catMatch && sMatch;
-    });
-  }, [products, activeCategory, search]);
+  const filtered = useMemo(() => products.filter(p => {
+    const catMatch = activeCategory === 'todos' || p.category === activeCategory;
+    const sMatch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    return catMatch && sMatch;
+  }), [products, activeCategory, search]);
 
   const total = useMemo(() => cart.reduce((sum, it) => sum + it.subtotal, 0), [cart]);
-  const change = useMemo(() => {
-    const recv = parseFloat(amountReceived) || 0;
-    return Math.max(0, recv - total);
-  }, [amountReceived, total]);
+  const change = useMemo(() => Math.max(0, (parseFloat(amountReceived) || 0) - total), [amountReceived, total]);
 
   const addToCart = (product, opts = []) => {
     setCart(prev => {
-      // If has custom options, treat each combination as unique
       const key = product.id + '|' + opts.join('|');
       const idx = prev.findIndex(it => (it.product.id + '|' + (it.selected_options || []).join('|')) === key);
       if (idx >= 0) {
@@ -66,19 +57,10 @@ const POSPage = () => {
   };
 
   const handleProductClick = (product) => {
-    if (product.custom_options && product.custom_options.length > 0) {
-      setShowOptionsFor(product);
-      setTempOptions([]);
-    } else {
-      addToCart(product);
-    }
+    if (product.custom_options?.length > 0) { setShowOptionsFor(product); setTempOptions([]); }
+    else addToCart(product);
   };
-
-  const confirmOptions = () => {
-    addToCart(showOptionsFor, tempOptions);
-    setShowOptionsFor(null);
-    setTempOptions([]);
-  };
+  const confirmOptions = () => { addToCart(showOptionsFor, tempOptions); setShowOptionsFor(null); setTempOptions([]); };
 
   const updateQty = (idx, delta) => {
     setCart(prev => {
@@ -89,7 +71,6 @@ const POSPage = () => {
       return next;
     });
   };
-
   const removeItem = (idx) => setCart(prev => prev.filter((_, i) => i !== idx));
   const clearCart = () => setCart([]);
 
@@ -97,12 +78,11 @@ const POSPage = () => {
     if (cart.length === 0) return;
     if (!customer.trim()) { toast.error('Ingresa el nombre del cliente'); return; }
     if (paymentMethod === 'cash') {
-      const recv = parseFloat(amountReceived) || 0;
-      if (recv < total) { toast.error('El monto recibido es menor al total'); return; }
+      if ((parseFloat(amountReceived) || 0) < total) { toast.error('El monto recibido es menor al total'); return; }
     }
     setSubmitting(true);
     try {
-      const order = {
+      await ordersApi.create({
         customer_name: customer.trim(),
         items: cart.map(it => ({
           product_id: it.product.id,
@@ -118,19 +98,11 @@ const POSPage = () => {
         change: paymentMethod === 'cash' ? change : null,
         cashier_id: cashier?.id || null,
         cashier_name: cashier?.name || null,
-      };
-      await ordersApi.create(order);
+      });
       toast.success(`Venta registrada: ${formatMoney(total)}`);
-      setCart([]);
-      setCustomer('');
-      setAmountReceived('');
-      setShowCheckout(false);
-      setShowCart(false);
-    } catch (e) {
-      toast.error(e.response?.data?.detail || 'Error al registrar la venta');
-    } finally {
-      setSubmitting(false);
-    }
+      setCart([]); setCustomer(''); setAmountReceived(''); setShowCheckout(false); setShowCart(false);
+    } catch (e) { toast.error(e.response?.data?.detail || 'Error al registrar la venta'); }
+    finally { setSubmitting(false); }
   };
 
   const categories = [
@@ -138,130 +110,116 @@ const POSPage = () => {
     { id: 'comida', label: 'Comida', icon: Utensils },
     { id: 'bebida', label: 'Bebida', icon: Coffee },
   ];
-
   const itemCount = cart.reduce((s, it) => s + it.quantity, 0);
 
   return (
     <div className="flex-1 flex h-full overflow-hidden" data-testid="pos-page">
-      {/* Products area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-4 sm:px-6 pt-3 pb-2 bg-white/70 glass border-b border-ios-border">
+        <div className="px-4 sm:px-6 pt-4 pb-3 glass-strong border-b border-white/5 relative z-10">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <p className="text-xs font-semibold tracking-wider text-ios-secondary uppercase">Punto de Venta</p>
-              <h1 className="font-heading text-2xl font-bold text-ios-text truncate" data-testid="pos-restaurant-name">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Punto de Venta</p>
+              <h1 className="font-heading text-2xl font-black text-gradient truncate" data-testid="pos-restaurant-name">
                 {restaurant?.restaurant_name}
               </h1>
             </div>
             <div className="relative w-full max-w-xs">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-ios-secondary" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar producto…"
-                className="pl-11 h-11 rounded-full bg-ios-gray border-transparent focus:bg-white focus:border-primary-500"
+                className="pl-11 h-11 rounded-full bg-ink-800/60 border border-white/5 focus:border-primary-500 text-foreground placeholder:text-foreground/30"
                 data-testid="pos-search-input"
               />
             </div>
           </div>
 
-          {/* Category tabs */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
+          {/* Categories */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 snap-x-mandatory">
             {categories.map(c => {
               const Icon = c.icon;
               const isActive = activeCategory === c.id;
               return (
-                <button
+                <motion.button
                   key={c.id}
+                  whileTap={{ scale: 0.94 }}
                   onClick={() => setActiveCategory(c.id)}
                   data-testid={`pos-category-${c.id}`}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ios-press ${
-                    isActive ? 'bg-ios-text text-white' : 'bg-ios-gray text-ios-text'
+                  className={`relative flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap snap-start transition-colors ${
+                    isActive ? 'text-ink-950' : 'text-foreground/60 bg-white/5 border border-white/5 hover:bg-white/10'
                   }`}
                 >
-                  <Icon className="h-4 w-4" /> {c.label}
-                </button>
+                  {isActive && (
+                    <motion.div
+                      layoutId="active-cat-pill"
+                      className="absolute inset-0 rounded-full bg-primary-500 shadow-neon-cyan"
+                      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <Icon className="relative h-4 w-4" strokeWidth={2.2} />
+                  <span className="relative">{c.label}</span>
+                </motion.button>
               );
             })}
           </div>
         </div>
 
         {/* Products grid */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 md:pb-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 lg:pb-6">
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-            </div>
+            <SkeletonGrid />
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16" data-testid="pos-empty-state">
-              <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-ios-gray mb-4">
-                <ShoppingBag className="h-10 w-10 text-ios-secondary" />
-              </div>
-              <h3 className="font-heading text-xl font-bold text-ios-text mb-2">
-                {products.length === 0 ? 'Aún no tienes productos' : 'Sin resultados'}
-              </h3>
-              <p className="text-ios-secondary mb-6">
-                {products.length === 0 ? 'Agrega productos en la sección "Productos"' : 'Intenta con otra búsqueda'}
-              </p>
-            </div>
+            <EmptyState empty={products.length === 0} />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 animate-fade-in">
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"
+            >
               {filtered.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handleProductClick(p)}
-                  className="group bg-white rounded-3xl overflow-hidden shadow-ios-sm border border-ios-border/50 ios-press text-left"
-                  data-testid={`pos-product-${p.id}`}
-                >
-                  <div className="aspect-square bg-ios-gray relative">
-                    {p.image ? (
-                      <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        {p.category === 'bebida' ? <Coffee className="h-10 w-10 text-ios-tertiary" /> : <Utensils className="h-10 w-10 text-ios-tertiary" />}
-                      </div>
-                    )}
-                    {p.custom_options?.length > 0 && (
-                      <span className="absolute top-2 right-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">+ opciones</span>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-semibold text-sm text-ios-text line-clamp-1">{p.name}</p>
-                    <p className="font-heading font-bold text-primary-500 text-base mt-0.5">{formatMoney(p.price)}</p>
-                  </div>
-                </button>
+                <ProductCard key={p.id} product={p} onClick={() => handleProductClick(p)} />
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
 
       {/* Cart Sidebar (desktop) */}
-      <aside className="hidden lg:flex flex-col w-96 bg-white border-l border-ios-border shadow-ios-cart">
+      <aside className="hidden lg:flex flex-col w-96 glass-strong border-l border-white/5 relative z-10">
         <CartContent cart={cart} updateQty={updateQty} removeItem={removeItem} clearCart={clearCart} total={total} onCheckout={() => setShowCheckout(true)} cashier={cashier} />
       </aside>
 
       {/* Mobile cart bar */}
-      {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-[72px] left-0 right-0 px-4 z-30 safe-bottom">
-          <button
-            onClick={() => setShowCart(true)}
-            className="w-full h-14 rounded-2xl bg-ios-text text-white flex items-center justify-between px-5 shadow-ios-lg ios-press"
-            data-testid="mobile-cart-trigger"
+      <AnimatePresence>
+        {cart.length > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="lg:hidden fixed bottom-[80px] left-0 right-0 px-4 z-30 safe-bottom"
           >
-            <span className="flex items-center gap-3 font-semibold">
-              <span className="bg-white text-ios-text rounded-full h-7 w-7 flex items-center justify-center text-sm font-bold">{itemCount}</span>
-              Ver carrito
-            </span>
-            <span className="font-heading font-bold text-lg">{formatMoney(total)}</span>
-          </button>
-        </div>
-      )}
+            <button
+              onClick={() => setShowCart(true)}
+              className="w-full h-16 rounded-2xl bg-primary-500 text-ink-950 flex items-center justify-between px-5 shadow-neon-cyan ios-press"
+              data-testid="mobile-cart-trigger"
+            >
+              <span className="flex items-center gap-3 font-bold">
+                <span className="bg-ink-950 text-primary-500 rounded-full h-8 w-8 flex items-center justify-center text-sm font-black">{itemCount}</span>
+                Ver carrito
+              </span>
+              <span className="font-heading font-black text-xl"><AnimatedNumber value={total} format={(v) => formatMoney(v)} /></span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile cart drawer */}
       <Dialog open={showCart} onOpenChange={setShowCart}>
-        <DialogContent className="lg:hidden p-0 max-w-full h-[85vh] rounded-t-3xl rounded-b-none top-auto bottom-0 translate-y-0 data-[state=open]:slide-in-from-bottom" data-testid="mobile-cart-drawer">
+        <DialogContent className="lg:hidden p-0 max-w-full h-[85vh] rounded-t-3xl rounded-b-none top-auto bottom-0 translate-y-0 bg-ink-900 border-white/5" data-testid="mobile-cart-drawer">
           <DialogHeader className="sr-only">
             <DialogTitle>Carrito</DialogTitle>
             <DialogDescription>Lista de productos a cobrar</DialogDescription>
@@ -272,56 +230,59 @@ const POSPage = () => {
 
       {/* Options modal */}
       <Dialog open={!!showOptionsFor} onOpenChange={(v) => !v && setShowOptionsFor(null)}>
-        <DialogContent className="rounded-3xl max-w-md" data-testid="product-options-modal">
+        <DialogContent className="rounded-3xl max-w-md bg-ink-900 border-white/5" data-testid="product-options-modal">
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">{showOptionsFor?.name}</DialogTitle>
-            <DialogDescription className="text-ios-secondary text-sm">Selecciona las opciones</DialogDescription>
+            <DialogDescription className="text-foreground/50 text-sm">Selecciona las opciones</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 my-2 max-h-72 overflow-y-auto">
             {showOptionsFor?.custom_options?.map(opt => {
               const checked = tempOptions.includes(opt);
               return (
-                <button
+                <motion.button
                   key={opt}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setTempOptions(prev => checked ? prev.filter(o => o !== opt) : [...prev, opt])}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ios-press ${
-                    checked ? 'border-primary-500 bg-primary-50' : 'border-ios-border bg-white'
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                    checked ? 'border-primary-500 bg-primary-500/10 text-primary-500 shadow-neon-cyan' : 'border-white/10 bg-white/5 text-foreground hover:bg-white/10'
                   }`}
                   data-testid={`option-${opt}`}
                 >
-                  <span className="font-medium text-ios-text">{opt}</span>
-                  {checked && <Check className="h-5 w-5 text-primary-500" />}
-                </button>
+                  <span className="font-medium">{opt}</span>
+                  {checked && <Check className="h-5 w-5" />}
+                </motion.button>
               );
             })}
           </div>
           <DialogFooter className="flex-row gap-2 sm:gap-2">
-            <Button variant="outline" className="flex-1 h-12 rounded-2xl" onClick={() => setShowOptionsFor(null)}>Cancelar</Button>
-            <Button className="flex-1 h-12 rounded-2xl bg-primary-500 hover:bg-primary-600" onClick={confirmOptions} data-testid="confirm-options-button">Agregar</Button>
+            <Button variant="outline" className="flex-1 h-12 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10" onClick={() => setShowOptionsFor(null)}>Cancelar</Button>
+            <Button className="flex-1 h-12 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan" onClick={confirmOptions} data-testid="confirm-options-button">Agregar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Checkout modal */}
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent className="rounded-3xl max-w-md" data-testid="checkout-modal">
+        <DialogContent className="rounded-3xl max-w-md bg-ink-900 border-white/5" data-testid="checkout-modal">
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">Cobrar venta</DialogTitle>
-            <DialogDescription className="text-ios-secondary text-sm">Total: <span className="font-bold text-ios-text">{formatMoney(total)}</span></DialogDescription>
+            <DialogDescription className="text-foreground/50 text-sm">
+              Total: <span className="font-mono font-bold text-primary-500 text-glow-cyan">{formatMoney(total)}</span>
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 my-2">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-ios-text">Cliente</label>
+              <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Cliente</label>
               <Input
                 value={customer}
                 onChange={(e) => setCustomer(e.target.value)}
                 placeholder="Nombre del cliente"
-                className="h-12 rounded-2xl bg-ios-gray border-transparent focus:bg-white focus:border-primary-500"
+                className="h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500"
                 data-testid="checkout-customer-input"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-ios-text">Método de pago</label>
+              <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Método de pago</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'cash', label: 'Efectivo', icon: Banknote },
@@ -331,45 +292,58 @@ const POSPage = () => {
                   const Icon = pm.icon;
                   const active = paymentMethod === pm.id;
                   return (
-                    <button
+                    <motion.button
                       key={pm.id}
+                      whileTap={{ scale: 0.96 }}
                       onClick={() => setPaymentMethod(pm.id)}
                       data-testid={`payment-${pm.id}`}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-2xl border-2 transition-all ios-press ${
-                        active ? 'border-primary-500 bg-primary-50 text-primary-500' : 'border-ios-border bg-white text-ios-text'
+                      className={`relative flex flex-col items-center gap-1 p-3 rounded-2xl border transition-all ${
+                        active ? 'border-primary-500 bg-primary-500/10 text-primary-500 shadow-neon-cyan' : 'border-white/10 bg-white/5 text-foreground hover:bg-white/10'
                       }`}
                     >
                       <Icon className="h-5 w-5" />
-                      <span className="text-xs font-semibold">{pm.label}</span>
-                    </button>
+                      <span className="text-xs font-bold">{pm.label}</span>
+                    </motion.button>
                   );
                 })}
               </div>
             </div>
-            {paymentMethod === 'cash' && (
-              <div className="space-y-2 animate-fade-in">
-                <label className="text-sm font-semibold text-ios-text">Monto recibido</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={amountReceived}
-                  onChange={(e) => setAmountReceived(e.target.value)}
-                  placeholder="0.00"
-                  className="h-14 rounded-2xl bg-ios-gray border-transparent focus:bg-white focus:border-primary-500 text-2xl font-heading font-bold text-center"
-                  data-testid="checkout-amount-input"
-                />
-                {amountReceived && parseFloat(amountReceived) >= total && (
-                  <div className="bg-success/10 rounded-2xl p-3 flex items-center justify-between" data-testid="checkout-change">
-                    <span className="text-sm font-semibold text-ios-text">Cambio</span>
-                    <span className="font-heading font-bold text-success text-xl">{formatMoney(change)}</span>
-                  </div>
-                )}
-              </div>
-            )}
+            <AnimatePresence>
+              {paymentMethod === 'cash' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="space-y-2 overflow-hidden"
+                >
+                  <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Monto recibido</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={amountReceived}
+                    onChange={(e) => setAmountReceived(e.target.value)}
+                    placeholder="0.00"
+                    className="h-16 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500 text-3xl font-mono font-bold text-center text-primary-500"
+                    data-testid="checkout-amount-input"
+                  />
+                  {amountReceived && parseFloat(amountReceived) >= total && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-success/10 border border-success/30 rounded-2xl p-3 flex items-center justify-between"
+                      data-testid="checkout-change"
+                    >
+                      <span className="text-sm font-bold text-success">Cambio</span>
+                      <span className="font-mono font-black text-success text-2xl"><AnimatedNumber value={change} format={(v) => formatMoney(v)} /></span>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <DialogFooter className="flex-row gap-2 sm:gap-2">
-            <Button variant="outline" className="flex-1 h-12 rounded-2xl" onClick={() => setShowCheckout(false)}>Cancelar</Button>
-            <Button className="flex-1 h-12 rounded-2xl bg-success hover:bg-success/90 text-white" onClick={handleCheckout} disabled={submitting} data-testid="confirm-checkout-button">
+            <Button variant="outline" className="flex-1 h-12 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10" onClick={() => setShowCheckout(false)}>Cancelar</Button>
+            <Button className="flex-1 h-12 rounded-2xl bg-success hover:bg-success/90 text-ink-950 font-bold" onClick={handleCheckout} disabled={submitting} data-testid="confirm-checkout-button">
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Receipt className="h-4 w-4 mr-1" /> Cobrar</>}
             </Button>
           </DialogFooter>
@@ -379,74 +353,161 @@ const POSPage = () => {
   );
 };
 
-const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout, cashier }) => {
-  return (
-    <div className="flex flex-col h-full" data-testid="cart-content">
-      <div className="px-5 py-4 border-b border-ios-border flex items-center justify-between">
-        <div>
-          <h2 className="font-heading text-xl font-bold text-ios-text">Carrito</h2>
-          {cashier && <p className="text-xs text-primary-500 font-medium">Cajero: {cashier.name}</p>}
+const ProductCard = ({ product, onClick }) => (
+  <motion.button
+    variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
+    whileHover={{ y: -4, transition: { duration: 0.2 } }}
+    whileTap={{ scale: 0.97 }}
+    onClick={onClick}
+    className="group relative bg-ink-800/60 backdrop-blur-xl rounded-3xl overflow-hidden border border-white/5 hover:border-primary-500/40 hover:shadow-neon-cyan transition-all text-left"
+    data-testid={`pos-product-${product.id}`}
+  >
+    <div className="aspect-square bg-ink-900 relative overflow-hidden">
+      {product.image ? (
+        <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-ink-800 to-ink-900">
+          {product.category === 'bebida'
+            ? <Coffee className="h-12 w-12 text-primary-500/40" strokeWidth={1.4} />
+            : <Utensils className="h-12 w-12 text-accent-500/40" strokeWidth={1.4} />}
         </div>
-        {cart.length > 0 && (
-          <button onClick={clearCart} className="text-sm font-semibold text-destructive ios-press" data-testid="cart-clear-button">
-            Vaciar
-          </button>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/40 to-transparent opacity-60 group-hover:opacity-30 transition-opacity" />
+      {product.custom_options?.length > 0 && (
+        <span className="absolute top-2 right-2 bg-accent-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-neon-violet">
+          + opciones
+        </span>
+      )}
+    </div>
+    <div className="p-3">
+      <p className="font-bold text-sm text-foreground line-clamp-1">{product.name}</p>
+      <p className="font-mono font-bold text-primary-500 text-base mt-0.5 group-hover:text-glow-cyan transition-all">${product.price.toFixed(2)}</p>
+    </div>
+  </motion.button>
+);
+
+const SkeletonGrid = () => (
+  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+    {Array.from({ length: 10 }).map((_, i) => (
+      <div key={i} className="bg-ink-800/60 rounded-3xl overflow-hidden border border-white/5">
+        <div className="aspect-square shimmer bg-ink-700" />
+        <div className="p-3 space-y-2">
+          <div className="h-3 w-3/4 shimmer bg-ink-700 rounded" />
+          <div className="h-3 w-1/2 shimmer bg-ink-700 rounded" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const EmptyState = ({ empty }) => (
+  <div className="text-center py-16" data-testid="pos-empty-state">
+    <motion.div
+      animate={{ y: [0, -8, 0] }}
+      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      className="inline-flex h-24 w-24 items-center justify-center rounded-3xl bg-white/5 border border-white/5 mb-4 relative"
+    >
+      <div className="absolute inset-0 rounded-3xl conic-border opacity-40" />
+      <ShoppingBag className="h-12 w-12 text-primary-500/60 relative" strokeWidth={1.5} />
+    </motion.div>
+    <h3 className="font-heading text-xl font-bold text-foreground mb-2">
+      {empty ? 'Aún no tienes productos' : 'Sin resultados'}
+    </h3>
+    <p className="text-foreground/50 mb-6">
+      {empty ? 'Agrega productos en la sección "Productos"' : 'Intenta con otra búsqueda'}
+    </p>
+  </div>
+);
+
+const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout, cashier }) => (
+  <div className="flex flex-col h-full" data-testid="cart-content">
+    <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+      <div>
+        <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Orden actual</p>
+        <h2 className="font-heading text-xl font-black text-foreground">Carrito</h2>
+        {cashier && (
+          <div className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-primary-500">
+            <span className="block h-1.5 w-1.5 rounded-full bg-success pulse-dot" />
+            <Sparkles className="h-3 w-3" /> {cashier.name}
+          </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      {cart.length > 0 && (
+        <button onClick={clearCart} className="text-xs font-bold uppercase tracking-wider text-destructive hover:text-glow-violet ios-press" data-testid="cart-clear-button">
+          Vaciar
+        </button>
+      )}
+    </div>
+    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <AnimatePresence initial={false}>
         {cart.length === 0 ? (
-          <div className="text-center py-12">
-            <ShoppingBag className="h-12 w-12 text-ios-tertiary mx-auto mb-3" />
-            <p className="text-ios-secondary">Aún no hay productos</p>
-            <p className="text-xs text-ios-tertiary mt-1">Toca un producto para agregarlo</p>
-          </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
+            <div className="relative inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-white/5 border border-white/5 mb-3">
+              <ShoppingBag className="h-7 w-7 text-foreground/30" />
+            </div>
+            <p className="text-foreground/50 font-medium">Aún no hay productos</p>
+            <p className="text-xs text-foreground/30 mt-1">Toca un producto para agregarlo</p>
+          </motion.div>
         ) : (
           cart.map((it, idx) => (
-            <div key={idx} className="bg-ios-gray rounded-2xl p-3" data-testid={`cart-item-${idx}`}>
+            <motion.div
+              key={`${it.product.id}-${(it.selected_options || []).join(',')}`}
+              layout
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className="bg-white/5 border border-white/5 rounded-2xl p-3"
+              data-testid={`cart-item-${idx}`}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-ios-text text-sm truncate">{it.product.name}</p>
-                  <p className="text-xs text-ios-secondary">{formatMoney(it.product.price)} c/u</p>
+                  <p className="font-bold text-foreground text-sm truncate">{it.product.name}</p>
+                  <p className="text-xs text-foreground/40 font-mono">${it.product.price.toFixed(2)} c/u</p>
                   {it.selected_options?.length > 0 && (
-                    <p className="text-[11px] text-primary-500 mt-1">{it.selected_options.join(', ')}</p>
+                    <p className="text-[11px] text-accent-500 mt-1 font-medium">{it.selected_options.join(' · ')}</p>
                   )}
                 </div>
-                <button onClick={() => removeItem(idx)} className="text-ios-tertiary hover:text-destructive ios-press" data-testid={`cart-remove-${idx}`}>
+                <button onClick={() => removeItem(idx)} className="text-foreground/30 hover:text-destructive ios-press" data-testid={`cart-remove-${idx}`}>
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-1 bg-white rounded-full p-1">
-                  <button onClick={() => updateQty(idx, -1)} className="h-8 w-8 rounded-full bg-ios-gray flex items-center justify-center ios-press" data-testid={`cart-decrease-${idx}`}>
+                <div className="flex items-center gap-1 bg-ink-900 rounded-full p-1 border border-white/5">
+                  <button onClick={() => updateQty(idx, -1)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center ios-press text-foreground" data-testid={`cart-decrease-${idx}`}>
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="font-bold text-ios-text px-3 min-w-[28px] text-center">{it.quantity}</span>
-                  <button onClick={() => updateQty(idx, 1)} className="h-8 w-8 rounded-full bg-primary-500 text-white flex items-center justify-center ios-press" data-testid={`cart-increase-${idx}`}>
-                    <Plus className="h-4 w-4" />
+                  <span className="font-mono font-bold text-foreground px-3 min-w-[28px] text-center">{it.quantity}</span>
+                  <button onClick={() => updateQty(idx, 1)} className="h-8 w-8 rounded-full bg-primary-500 text-ink-950 flex items-center justify-center ios-press shadow-neon-cyan" data-testid={`cart-increase-${idx}`}>
+                    <Plus className="h-4 w-4" strokeWidth={3} />
                   </button>
                 </div>
-                <span className="font-heading font-bold text-ios-text">{formatMoney(it.subtotal)}</span>
+                <span className="font-mono font-black text-foreground">${it.subtotal.toFixed(2)}</span>
               </div>
-            </div>
+            </motion.div>
           ))
         )}
+      </AnimatePresence>
+    </div>
+    <div className="px-5 py-4 pb-24 lg:pb-20 border-t border-white/5 space-y-3 bg-ink-900/80 safe-bottom">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Total</span>
+        <span className="font-mono font-black text-3xl text-primary-500 text-glow-cyan" data-testid="cart-total">
+          <AnimatedNumber value={total} format={(v) => formatMoney(v)} />
+        </span>
       </div>
-      <div className="px-5 py-4 pb-24 md:pb-20 border-t border-ios-border space-y-3 bg-white safe-bottom">
-        <div className="flex items-center justify-between">
-          <span className="text-ios-secondary font-medium">Total</span>
-          <span className="font-heading font-bold text-3xl text-ios-text" data-testid="cart-total">{formatMoney(total)}</span>
-        </div>
+      <motion.div whileHover={{ scale: cart.length > 0 ? 1.02 : 1 }} whileTap={{ scale: 0.98 }}>
         <Button
-          className="w-full h-14 rounded-2xl bg-primary-500 hover:bg-primary-600 text-white font-semibold text-base ios-press"
+          className="w-full h-14 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-black text-base shadow-neon-cyan disabled:bg-ink-700 disabled:text-foreground/30 disabled:shadow-none transition-all"
           disabled={cart.length === 0}
           onClick={onCheckout}
           data-testid="cart-checkout-button"
         >
           Cobrar {cart.length > 0 && formatMoney(total)}
         </Button>
-      </div>
+      </motion.div>
     </div>
-  );
-};
+  </div>
+);
 
 export default POSPage;

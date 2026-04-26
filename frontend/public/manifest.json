@@ -20,8 +20,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "theme_color": "#FBFBFD",
-  "background_color": "#FBFBFD",
+  "theme_color": "#06070D",
+  "background_color": "#06070D",
   "lang": "es",
   "categories": ["business", "food", "productivity"]
 }
