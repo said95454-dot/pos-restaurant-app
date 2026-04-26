@@ -3,7 +3,7 @@ import { cashiersApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, Plus, Edit2, Trash2, Users, KeyRound, LogIn, UserCheck, Power } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -137,6 +137,7 @@ const CashierForm = ({ editing, onClose, onSave, saving }) => {
       <DialogContent className="rounded-3xl max-w-md" data-testid="cashier-form-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl">{editing.id ? 'Editar cajero' : 'Nuevo cajero'}</DialogTitle>
+          <DialogDescription className="text-ios-secondary text-sm">Define un PIN o contraseña para el cajero.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div>
@@ -199,6 +200,7 @@ const CashierLoginModal = ({ cashier, onClose, onSuccess }) => {
       <DialogContent className="rounded-3xl max-w-sm" data-testid="cashier-login-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl text-center">Iniciar sesión: {cashier.name}</DialogTitle>
+          <DialogDescription className="text-ios-secondary text-sm text-center">Ingresa el PIN o contraseña del cajero.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-1 bg-ios-gray rounded-2xl p-1">

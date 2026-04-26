@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { productsApi } from '@/utils/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Edit2, Trash2, Upload, Loader2, Coffee, Utensils, X, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -175,6 +175,7 @@ const ProductForm = ({ editing, onClose, onSave, saving }) => {
       <DialogContent className="rounded-3xl max-w-md max-h-[92vh] overflow-y-auto" data-testid="product-form-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl">{editing.id ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
+          <DialogDescription className="text-ios-secondary text-sm">Completa los datos del producto.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div>

@@ -3,7 +3,7 @@ import { productsApi, ordersApi, cashRegisterApi, statsApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Minus, Trash2, Search, ShoppingBag, Utensils, Coffee, Banknote, CreditCard, ArrowRightLeft, Loader2, X, Check, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -262,6 +262,10 @@ const POSPage = () => {
       {/* Mobile cart drawer */}
       <Dialog open={showCart} onOpenChange={setShowCart}>
         <DialogContent className="lg:hidden p-0 max-w-full h-[85vh] rounded-t-3xl rounded-b-none top-auto bottom-0 translate-y-0 data-[state=open]:slide-in-from-bottom" data-testid="mobile-cart-drawer">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Carrito</DialogTitle>
+            <DialogDescription>Lista de productos a cobrar</DialogDescription>
+          </DialogHeader>
           <CartContent cart={cart} updateQty={updateQty} removeItem={removeItem} clearCart={clearCart} total={total} onCheckout={() => { setShowCart(false); setShowCheckout(true); }} cashier={cashier} />
         </DialogContent>
       </Dialog>
@@ -271,7 +275,7 @@ const POSPage = () => {
         <DialogContent className="rounded-3xl max-w-md" data-testid="product-options-modal">
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">{showOptionsFor?.name}</DialogTitle>
-            <p className="text-ios-secondary text-sm">Selecciona las opciones</p>
+            <DialogDescription className="text-ios-secondary text-sm">Selecciona las opciones</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 my-2 max-h-72 overflow-y-auto">
             {showOptionsFor?.custom_options?.map(opt => {
@@ -303,7 +307,7 @@ const POSPage = () => {
         <DialogContent className="rounded-3xl max-w-md" data-testid="checkout-modal">
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">Cobrar venta</DialogTitle>
-            <p className="text-ios-secondary text-sm">Total: <span className="font-bold text-ios-text">{formatMoney(total)}</span></p>
+            <DialogDescription className="text-ios-secondary text-sm">Total: <span className="font-bold text-ios-text">{formatMoney(total)}</span></DialogDescription>
           </DialogHeader>
           <div className="space-y-4 my-2">
             <div className="space-y-2">
@@ -427,7 +431,7 @@ const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout
           ))
         )}
       </div>
-      <div className="px-5 py-4 border-t border-ios-border space-y-3 bg-white">
+      <div className="px-5 py-4 pb-24 md:pb-20 border-t border-ios-border space-y-3 bg-white safe-bottom">
         <div className="flex items-center justify-between">
           <span className="text-ios-secondary font-medium">Total</span>
           <span className="font-heading font-bold text-3xl text-ios-text" data-testid="cart-total">{formatMoney(total)}</span>

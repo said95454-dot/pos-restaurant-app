@@ -3,7 +3,7 @@ import { cashRegisterApi, statsApi } from '@/utils/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -184,6 +184,7 @@ const CloseModal = ({ open, onClose, stats, cashier, restaurant, onDone }) => {
       <DialogContent className="rounded-3xl max-w-md max-h-[92vh] overflow-y-auto" data-testid="close-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl">Corte de caja - {today()}</DialogTitle>
+          <DialogDescription className="text-ios-secondary text-sm">Verifica el efectivo y cierra el día.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 bg-ios-gray rounded-2xl p-3">
