@@ -2,77 +2,60 @@ import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
-import DashboardPage from "@/pages/DashboardPage";
+import { Toaster } from "@/components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import POSPage from "@/pages/POSPage";
+import ProductsPage from "@/pages/ProductsPage";
+import OrdersPage from "@/pages/OrdersPage";
+import StatsPage from "@/pages/StatsPage";
+import CashRegisterPage from "@/pages/CashRegisterPage";
+import CashiersPage from "@/pages/CashiersPage";
+import SettingsPage from "@/pages/SettingsPage";
+import AppLayout from "@/components/AppLayout";
+
+const FullPageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-ios-bg">
+    <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+  </div>
+);
+
+const Protected = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (loading) return <FullPageLoader />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return children;
 };
 
-// Public Route Component (redirect if authenticated)
-const PublicRoute = ({ children }) => {
+const PublicOnly = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  if (loading) return <FullPageLoader />;
+  if (isAuthenticated) return <Navigate to="/pos" replace />;
   return children;
 };
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route 
-        path="/login" 
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        } 
-      />
-      <Route 
-        path="/register" 
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        } 
-      />
+      <Route path="/" element={<Navigate to="/pos" replace />} />
+      <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
+      <Route path="/register" element={<PublicOnly><RegisterPage /></PublicOnly>} />
+      <Route path="/forgot-password" element={<PublicOnly><ForgotPasswordPage /></PublicOnly>} />
+      <Route path="/reset-password" element={<PublicOnly><ResetPasswordPage /></PublicOnly>} />
+
+      <Route element={<Protected><AppLayout /></Protected>}>
+        <Route path="/pos" element={<POSPage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/stats" element={<StatsPage />} />
+        <Route path="/cash-register" element={<CashRegisterPage />} />
+        <Route path="/cashiers" element={<CashiersPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
     </Routes>
   );
 }
@@ -83,6 +66,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <AppRoutes />
+          <Toaster position="top-center" richColors />
         </AuthProvider>
       </BrowserRouter>
     </div>

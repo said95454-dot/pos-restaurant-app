@@ -1,0 +1,27 @@
+{
+  "short_name": "POS Resto",
+  "name": "POS Restaurante",
+  "description": "Sistema de punto de venta para restaurantes en iPhone, iPad y Mac",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#FBFBFD",
+  "background_color": "#FBFBFD",
+  "lang": "es",
+  "categories": ["business", "food", "productivity"]
+}
