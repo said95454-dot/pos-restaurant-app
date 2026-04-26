@@ -1,36 +1,73 @@
-# PRD - Sistema de Autenticación
+# PRD - POS Restaurante (PWA)
 
 ## Problema Original
-Usuario quería continuar con su proyecto anterior, específicamente implementar el frontend de autenticación (api.ts con funciones de registro y login).
+Usuario clonó https://github.com/said95454-dot/pos-restaurant-app — repositorio multi-tenant con backend completo (FastAPI) pero frontend incompleto. Pidió compilar/arreglar errores y hacer una app válida para iPhone, iPad y Mac. Tras explicar opciones, eligió **Opción A: PWA (Progressive Web App)**.
 
-## Estado Actual (16 Mar 2026)
+## Estado Actual (Enero 2026)
 
 ### Implementado ✅
-1. **Backend (FastAPI)**
-   - Endpoint `/api/auth/register` - Registro de usuarios con hash bcrypt
-   - Endpoint `/api/auth/login` - Login con generación de JWT
-   - Endpoint `/api/auth/me` - Obtener datos del usuario autenticado
-   - Middleware de autenticación con Bearer token
-   - MongoDB para persistencia de usuarios
 
-2. **Frontend (React)**
-   - `/app/frontend/src/utils/api.ts` - Cliente API con interceptors de autenticación
-   - `/app/frontend/src/contexts/AuthContext.jsx` - Contexto de autenticación
-   - `/app/frontend/src/pages/LoginPage.jsx` - Página de login
-   - `/app/frontend/src/pages/RegisterPage.jsx` - Página de registro
-   - `/app/frontend/src/pages/DashboardPage.jsx` - Dashboard protegido
-   - Rutas protegidas (ProtectedRoute) y públicas (PublicRoute)
+#### Backend (FastAPI + MongoDB + JWT) — `/app/backend/server.py`
+- Auth multi-restaurante (`/api/auth/restaurant/register`, `/api/auth/restaurant/login`, `/api/auth/me`)
+- Recuperación de contraseña con código (Resend) — funcional pero sin API key configurada
+- Productos CRUD (multi-tenant) con imágenes base64, categorías (comida/bebida) y opciones personalizadas
+- Órdenes (crear, listar con filtros por fecha y cajero, marcar como impreso)
+- Cajeros CRUD con login por PIN o contraseña
+- Estadísticas: ventas diarias, rango, top productos
+- Corte de caja: fondo inicial, esperado, real, diferencia
+- Configuración del negocio (nombre, logo)
+
+#### Frontend (React 19 + Tailwind + shadcn/ui) — Diseño iOS premium
+- `LoginPage`, `RegisterPage`, `ForgotPasswordPage`, `ResetPasswordPage`
+- `POSPage` — pantalla de ventas con grid de productos, carrito (sidebar desktop / drawer mobile), checkout con efectivo/tarjeta/transferencia y cálculo de cambio
+- `ProductsPage` — CRUD con upload de imagen, opciones personalizadas
+- `OrdersPage` — historial con filtro de fecha y detalles expandibles
+- `StatsPage` — ventas diarias, top productos, gráfico de rango con recharts
+- `CashRegisterPage` — corte de caja con cálculo de diferencias
+- `CashiersPage` — CRUD + login por PIN/contraseña
+- `SettingsPage` — branding del restaurante + instrucciones para instalar PWA
+
+#### PWA — Instalable en iPhone, iPad y Mac
+- `manifest.json` con `display: standalone`, theme color iOS
+- `apple-touch-icon`, `apple-mobile-web-app-capable`
+- Iconos 192/512/180 generados
+- Safe-area insets (notch, home indicator)
+- Fuentes Outfit + Manrope (no Inter/Roboto)
+- Layout adaptativo: sidebar en desktop/iPad, bottom nav en iPhone
 
 ### Tecnologías
-- Backend: FastAPI, MongoDB, JWT, bcrypt
-- Frontend: React 19, React Router, Tailwind CSS, shadcn/ui
+- **Backend**: FastAPI, MongoDB (motor), JWT, bcrypt/passlib, Resend
+- **Frontend**: React 19, Tailwind CSS, shadcn/ui, lucide-react, recharts, sonner, axios
 
-## Testing
-- Backend: 6/6 tests pasados (100%)
-- Frontend: 9/9 funcionalidades verificadas (100%)
+### Testing
+- Backend: 23/23 tests pytest pasados (100%)
+- Frontend: Todos los flujos validados (100%)
+- Issue crítico (badge bloqueando botón Cobrar) resuelto y verificado
 
-## Próximos Pasos Sugeridos
-- P0: Implementar recuperación de contraseña
-- P1: Añadir verificación de email
-- P1: Perfil de usuario editable
-- P2: Autenticación social (Google/GitHub)
+### Credenciales demo
+- Email: demo@restaurant.com
+- Pwd: demo1234
+
+## Próximos Pasos / Backlog
+
+### P0 (siguientes)
+- Configurar `RESEND_API_KEY` en backend/.env para que la recuperación de contraseña envíe emails reales
+- Agregar la app a iPhone/iPad/Mac (Safari → Compartir → "Añadir a pantalla de inicio")
+
+### P1
+- Soporte offline básico (Service Worker para cache de productos)
+- Impresión de tickets via Bluetooth/AirPrint
+- Multimoneda y configuración de impuestos
+- Notificaciones push (web push)
+
+### P2
+- App nativa con Expo (React Native) para distribución en App Store
+- Sincronización offline-first con conflict resolution
+- Reportes exportables (CSV/PDF)
+- Programa de lealtad y descuentos por cliente
+
+## Arquitectura
+- 1 backend FastAPI multi-tenant (los datos de cada restaurante están aislados por `restaurant_id`)
+- 1 frontend React PWA (un solo build sirve a iPhone, iPad y Mac vía Safari)
+- MongoDB como base de datos principal
+- JWT en localStorage del navegador para sesiones
