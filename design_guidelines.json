@@ -1,0 +1,136 @@
+{
+  "theme": "Light",
+  "archetype": "Archetype 4 (Swiss & High-Contrast) + Apple HIG Premium Feel",
+  "design_philosophy": "Crisp, frictionless, and instantly responsive. This POS balances the authoritative, high-contrast clarity needed for rapid transactional environments with the premium, glass-like fluidity of a native Apple experience. Every interaction is highly legible, touch-optimized, and built to trust.",
+  "colors": {
+    "background": {
+      "base": "#FBFBFD",
+      "surface": "#FFFFFF",
+      "elevated": "#F5F5F7"
+    },
+    "text": {
+      "primary": "#1C1C1E",
+      "secondary": "#8E8E93",
+      "tertiary": "#C7C7CC",
+      "inverse": "#FFFFFF"
+    },
+    "primary": {
+      "DEFAULT": "#007AFF",
+      "hover": "#0056B3",
+      "muted": "#E5F1FF"
+    },
+    "accent": {
+      "DEFAULT": "#FF9500",
+      "hover": "#CC7700",
+      "muted": "#FFF4E5"
+    },
+    "semantic": {
+      "success": "#34C759",
+      "destructive": "#FF3B30",
+      "warning": "#FFCC00"
+    },
+    "borders": {
+      "DEFAULT": "rgba(60, 60, 67, 0.12)",
+      "focus": "#007AFF"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Outfit, system-ui, -apple-system, sans-serif",
+      "body": "Manrope, system-ui, -apple-system, sans-serif",
+      "mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+    },
+    "scales": {
+      "h1": "text-4xl font-bold tracking-tight leading-tight",
+      "h2": "text-3xl font-semibold tracking-tight leading-snug",
+      "h3": "text-2xl font-medium tracking-tight",
+      "h4": "text-xl font-medium tracking-tight",
+      "body": "text-base font-normal leading-relaxed",
+      "label": "text-sm font-semibold tracking-wide uppercase text-secondary",
+      "micro": "text-xs font-medium"
+    }
+  },
+  "spacing_and_layout": {
+    "philosophy": "Generous Apple-like margins with safe-area protection.",
+    "container": "w-full max-w-7xl mx-auto px-safe-4 md:px-safe-8",
+    "touch_targets": "Min 44px height for all interactive elements.",
+    "grids": {
+      "pos_products": "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4",
+      "dashboard_stats": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6",
+      "pin_pad": "grid grid-cols-3 gap-4"
+    },
+    "pwa_safe_areas": {
+      "top": "pt-[env(safe-area-inset-top)]",
+      "bottom": "pb-[env(safe-area-inset-bottom)]",
+      "left": "pl-[env(safe-area-inset-left)]",
+      "right": "pr-[env(safe-area-inset-right)]"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "h-14 rounded-2xl bg-[#007AFF] text-white font-semibold text-lg active:scale-[0.98] transition-transform shadow-sm flex items-center justify-center",
+      "secondary": "h-14 rounded-2xl bg-white border border-[#E5E5EA] text-[#1C1C1E] font-semibold text-lg active:scale-[0.98] transition-transform flex items-center justify-center shadow-sm",
+      "pin_key": "h-20 w-20 rounded-full bg-white border border-[#E5E5EA] text-3xl font-medium text-[#1C1C1E] active:bg-[#F2F2F7] transition-colors shadow-sm flex items-center justify-center",
+      "category_tab": "px-6 py-3 rounded-full text-base font-medium whitespace-nowrap transition-colors"
+    },
+    "cards": {
+      "product": "bg-white rounded-3xl border border-[rgba(60,60,67,0.08)] shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden active:scale-[0.98] transition-all cursor-pointer relative",
+      "stat": "bg-white rounded-3xl p-6 border border-[rgba(60,60,67,0.08)] shadow-sm flex flex-col gap-2",
+      "glass_panel": "bg-white/80 backdrop-blur-2xl border border-white/40 shadow-lg rounded-3xl"
+    },
+    "inputs": {
+      "text": "h-14 rounded-2xl bg-[#F2F2F7] border-transparent focus:bg-white focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20 transition-all text-lg px-4",
+      "search": "h-12 rounded-full bg-[#F2F2F7] border-transparent focus:bg-white focus:border-[#007AFF] text-base px-12 relative"
+    },
+    "layout_patterns": {
+      "pos_view": "h-screen flex flex-col md:flex-row overflow-hidden bg-[#FBFBFD]",
+      "pos_main": "flex-1 flex flex-col overflow-hidden",
+      "pos_cart": "w-full md:w-96 bg-white border-t md:border-t-0 md:border-l border-[#E5E5EA] flex flex-col z-10 shadow-[-8px_0_24px_rgba(0,0,0,0.02)]"
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-out",
+    "active": "active:scale-[0.98] active:opacity-80 transition-all duration-100",
+    "page_transition": "animate-in fade-in slide-in-from-bottom-4 duration-300 ease-out",
+    "modal_enter": "animate-in zoom-in-95 fade-in duration-200 ease-out"
+  },
+  "image_urls": {
+    "food_items": [
+      {
+        "url": "https://images.unsplash.com/photo-1770904984245-afbfaf46307d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHw0fHxkZWxpY2lvdXMlMjByZXN0YXVyYW50JTIwZm9vZCUyMGRpc2glMjBwbGF0aW5nfGVufDB8fHx8MTc3NzIyMTc1N3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Breaded pork cutlets with shredded cabbage",
+        "category": "comida"
+      },
+      {
+        "url": "https://images.pexels.com/photos/24289165/pexels-photo-24289165.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Gourmet shrimp appetizer elegantly plated",
+        "category": "comida"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1775497950071-965cf9e20b2f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwzfHxkZWxpY2lvdXMlMjByZXN0YXVyYW50JTIwZm9vZCUyMGRpc2glMjBwbGF0aW5nfGVufDB8fHx8MTc3NzIyMTc1N3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Chef garnishing small dish",
+        "category": "comida"
+      }
+    ],
+    "cashier_avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1583394838336-acd977736f90?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwc3RhZmZ8ZW58MHx8fHwxNzc3MjIyMTg5fDA&ixlib=rb-4.1.0&q=80&w=400",
+        "description": "Smiling professional barista/cashier",
+        "category": "avatar"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwyfHxyZXN0YXVyYW50JTIwc3RhZmZ8ZW58MHx8fHwxNzc3MjIyMTg5fDA&ixlib=rb-4.1.0&q=80&w=400",
+        "description": "Cashier processing payment",
+        "category": "avatar"
+      }
+    ]
+  },
+  "instructions_to_main_agent": {
+    "testing": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case, role-based format (e.g., data-testid='login-submit-button', data-testid='pos-category-tab').",
+    "pwa_setup": "Ensure manifest.json includes theme_color: '#FBFBFD', display: 'standalone', and apple-touch-icon links in index.html. Add meta tag for apple-mobile-web-app-capable='yes'.",
+    "safe_areas": "Apply pb-[env(safe-area-inset-bottom)] to bottom bars (cart, checkout actions) and pt-[env(safe-area-inset-top)] to the top navigation header.",
+    "fonts": "Install and configure Outfit and Manrope via Google Fonts in index.html, not local hosting. Ensure fallback is system-ui to guarantee the Apple native feel if web fonts fail.",
+    "icons": "Use lucide-react for all iconography. Keep strokeWidth to 1.5 or 2 for a crisp, Apple SF Symbols look.",
+    "language": "App is in Spanish. Ensure all text strings, empty states, and errors are in Latin American Spanish (e.g., 'Corte de caja', 'Cobrar', 'Efectivo')."
+  }
+}
