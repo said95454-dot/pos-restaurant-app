@@ -43,13 +43,13 @@ const ResetPasswordPage = () => {
           <form onSubmit={submit} className="space-y-4">
             <div>
               <Label className="text-sm font-semibold text-foreground">Código de recuperación</Label>
-              <Input value={token} onChange={(e) => setToken(e.target.value.toUpperCase())} placeholder="XXXXXXXX" maxLength={8} className="mt-1 h-14 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent text-center text-2xl tracking-widest font-bold uppercase" data-testid="reset-token-input" />
+              <Input value={token} onChange={(e) => setToken(e.target.value.toUpperCase())} placeholder="XXXXXXXX" maxLength={8} className="mt-1 h-14 rounded-2xl bg-ink-800/60 border border-white/10 text-center text-2xl tracking-widest font-bold uppercase" data-testid="reset-token-input" />
             </div>
             <div>
               <Label className="text-sm font-semibold text-foreground">Nueva contraseña</Label>
               <div className="relative mt-1">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/50" />
-                <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className="pl-12 h-14 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent" data-testid="reset-password-input" />
+                <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className="pl-12 h-14 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="reset-password-input" />
               </div>
             </div>
             <Button type="submit" disabled={loading} className="w-full h-14 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan font-semibold ios-press" data-testid="reset-submit">

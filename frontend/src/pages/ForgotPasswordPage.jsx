@@ -54,7 +54,7 @@ const ForgotPasswordPage = () => {
                 <Label className="text-sm font-semibold text-foreground">Correo electrónico</Label>
                 <div className="relative mt-1">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/50" />
-                  <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@restaurante.com" className="pl-12 h-14 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent focus:bg-white focus:border-primary-500" data-testid="forgot-email-input" />
+                  <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@restaurante.com" className="pl-12 h-14 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500 text-foreground" data-testid="forgot-email-input" />
                 </div>
               </div>
               <Button type="submit" disabled={loading} className="w-full h-14 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan font-semibold ios-press" data-testid="forgot-submit">

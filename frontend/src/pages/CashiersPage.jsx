@@ -134,7 +134,7 @@ const CashierForm = ({ editing, onClose, onSave, saving }) => {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="rounded-3xl max-w-md" data-testid="cashier-form-modal">
+      <DialogContent className="rounded-3xl max-w-md bg-ink-900 border-white/10 text-foreground" data-testid="cashier-form-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl">{editing.id ? 'Editar cajero' : 'Nuevo cajero'}</DialogTitle>
           <DialogDescription className="text-foreground/50 text-sm">Define un PIN o contraseña para el cajero.</DialogDescription>
@@ -142,15 +142,15 @@ const CashierForm = ({ editing, onClose, onSave, saving }) => {
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className="text-sm font-semibold text-foreground">Nombre</label>
-            <Input value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nombre del cajero" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent" data-testid="cashier-name-input" />
+            <Input value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nombre del cajero" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="cashier-name-input" />
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground">PIN de 4 dígitos {editing.id && <span className="text-foreground/50 text-xs">(dejar vacío para no cambiar)</span>}</label>
-            <Input maxLength={4} inputMode="numeric" value={form.pin || ''} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })} placeholder="0000" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent text-center text-2xl tracking-widest font-bold" data-testid="cashier-pin-input" />
+            <Input maxLength={4} inputMode="numeric" value={form.pin || ''} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })} placeholder="0000" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10 text-center text-2xl tracking-widest font-bold" data-testid="cashier-pin-input" />
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground">Contraseña <span className="text-foreground/50 text-xs">(opcional, alternativa al PIN)</span></label>
-            <Input type="password" value={form.password || ''} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent" data-testid="cashier-password-input" />
+            <Input type="password" value={form.password || ''} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="cashier-password-input" />
           </div>
           {editing.id && (
             <div className="flex items-center justify-between bg-ink-800/60 border border-white/5 rounded-2xl p-3">
@@ -197,7 +197,7 @@ const CashierLoginModal = ({ cashier, onClose, onSuccess }) => {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="rounded-3xl max-w-sm" data-testid="cashier-login-modal">
+      <DialogContent className="rounded-3xl max-w-sm bg-ink-900 border-white/10 text-foreground" data-testid="cashier-login-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl text-center">Iniciar sesión: {cashier.name}</DialogTitle>
           <DialogDescription className="text-foreground/50 text-sm text-center">Ingresa el PIN o contraseña del cajero.</DialogDescription>
@@ -208,9 +208,9 @@ const CashierLoginModal = ({ cashier, onClose, onSuccess }) => {
             <button onClick={() => setMode('password')} className={`h-10 rounded-xl text-sm font-semibold ${mode === 'password' ? 'bg-white shadow-ios-sm' : 'text-foreground/50'}`} data-testid="cashier-login-mode-password">Contraseña</button>
           </div>
           {mode === 'pin' ? (
-            <Input maxLength={4} inputMode="numeric" autoFocus value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="0000" className="h-16 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent text-center text-3xl tracking-widest font-bold" data-testid="cashier-login-pin-input" />
+            <Input maxLength={4} inputMode="numeric" autoFocus value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="0000" className="h-16 rounded-2xl bg-ink-800/60 border border-white/10 text-center text-3xl tracking-widest font-bold" data-testid="cashier-login-pin-input" />
           ) : (
-            <Input type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" className="h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent" data-testid="cashier-login-password-input" />
+            <Input type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" className="h-12 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="cashier-login-password-input" />
           )}
         </div>
         <DialogFooter className="flex-row gap-2 sm:gap-2">

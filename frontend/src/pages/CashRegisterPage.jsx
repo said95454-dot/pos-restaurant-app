@@ -181,7 +181,7 @@ const CloseModal = ({ open, onClose, stats, cashier, restaurant, onDone }) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="rounded-3xl max-w-md max-h-[92vh] overflow-y-auto" data-testid="close-modal">
+      <DialogContent className="rounded-3xl max-w-md max-h-[92vh] overflow-y-auto bg-ink-900 border-white/10 text-foreground" data-testid="close-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl">Corte de caja - {today()}</DialogTitle>
           <DialogDescription className="text-foreground/50 text-sm">Verifica el efectivo y cierra el día.</DialogDescription>
@@ -195,11 +195,11 @@ const CloseModal = ({ open, onClose, stats, cashier, restaurant, onDone }) => {
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground">Fondo inicial (efectivo en caja al abrir)</label>
-            <Input type="number" step="0.01" value={initial} onChange={(e) => setInitial(e.target.value)} placeholder="0.00" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent" data-testid="close-initial-input" />
+            <Input type="number" step="0.01" value={initial} onChange={(e) => setInitial(e.target.value)} placeholder="0.00" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="close-initial-input" />
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground">Efectivo real contado</label>
-            <Input type="number" step="0.01" value={actual} onChange={(e) => setActual(e.target.value)} placeholder="0.00" className="mt-1 h-14 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent text-2xl font-heading font-bold text-center" data-testid="close-actual-input" />
+            <Input type="number" step="0.01" value={actual} onChange={(e) => setActual(e.target.value)} placeholder="0.00" className="mt-1 h-14 rounded-2xl bg-ink-800/60 border border-white/10 text-2xl font-heading font-bold text-center" data-testid="close-actual-input" />
           </div>
           <div className="bg-ink-800/60 border border-white/5 rounded-2xl p-3 space-y-1">
             <Row label="Esperado (fondo + ventas efectivo)" value={formatMoney(expected)} />
@@ -208,7 +208,7 @@ const CloseModal = ({ open, onClose, stats, cashier, restaurant, onDone }) => {
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground">Notas (opcional)</label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observaciones..." className="mt-1 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent min-h-[80px]" data-testid="close-notes-input" />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observaciones..." className="mt-1 rounded-2xl bg-ink-800/60 border border-white/10 min-h-[80px]" data-testid="close-notes-input" />
           </div>
         </div>
         <DialogFooter className="flex-row gap-2 sm:gap-2">

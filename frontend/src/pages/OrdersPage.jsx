@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ordersApi } from '@/utils/api';
+import { ordersApi, businessApi } from '@/utils/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
-import { Loader2, Receipt, Banknote, CreditCard, ArrowRightLeft, User, Calendar } from 'lucide-react';
+import { Loader2, Receipt as ReceiptIcon, Banknote, CreditCard, ArrowRightLeft, User, Calendar, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import ReceiptComp, { printOrder } from '@/components/Receipt';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -11,18 +13,29 @@ const PM_ICONS = { cash: Banknote, card: CreditCard, transfer: ArrowRightLeft };
 const PM_LABELS = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia' };
 
 const OrdersPage = () => {
+  const { restaurant } = useAuth();
   const [date, setDate] = useState(today());
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [business, setBusiness] = useState(null);
+  const [printing, setPrinting] = useState(null);
 
   const load = async () => {
     setLoading(true);
-    try { setOrders(await ordersApi.list({ date_filter: date })); }
-    catch { toast.error('Error al cargar órdenes'); }
+    try {
+      const [list, b] = await Promise.all([ordersApi.list({ date_filter: date }), businessApi.get()]);
+      setOrders(list);
+      setBusiness(b);
+    } catch { toast.error('Error al cargar órdenes'); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [date]);
+
+  const handlePrint = (order) => {
+    setPrinting(order);
+    setTimeout(() => printOrder(), 50);
+  };
 
   const total = orders.reduce((s, o) => s + (o.total || 0), 0);
 
@@ -56,7 +69,7 @@ const OrdersPage = () => {
           <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary-500" /></div>
         ) : orders.length === 0 ? (
           <div className="glass rounded-3xl p-12 text-center" data-testid="orders-empty">
-            <Receipt className="h-12 w-12 text-foreground/30 mx-auto mb-3" />
+            <ReceiptIcon className="h-12 w-12 text-foreground/30 mx-auto mb-3" />
             <h3 className="font-heading text-xl font-bold text-foreground">Sin órdenes este día</h3>
             <p className="text-foreground/50">Las ventas aparecerán aquí</p>
           </div>
@@ -65,54 +78,67 @@ const OrdersPage = () => {
             {orders.map((o, i) => {
               const Icon = PM_ICONS[o.payment_method] || Banknote;
               return (
-                <button
+                <div
                   key={o.id}
-                  onClick={() => setSelected(selected === o.id ? null : o.id)}
-                  className="w-full p-4 flex items-center gap-4 text-left hover:bg-ink-800/60 border border-white/5 transition-colors"
+                  className="w-full p-4 flex items-center gap-3 text-left hover:bg-ink-800/60 border-b border-white/5 transition-colors"
                   data-testid={`order-${i}`}
                 >
-                  <div className="h-12 w-12 rounded-2xl bg-primary-500/10 text-primary-500 border border-primary-500/20 flex items-center justify-center flex-shrink-0">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-foreground truncate">{o.customer_name}</p>
-                      <span className="font-heading font-bold text-foreground text-lg">{formatMoney(o.total)}</span>
+                  <button
+                    onClick={() => setSelected(selected === o.id ? null : o.id)}
+                    className="flex-1 flex items-center gap-4 text-left min-w-0"
+                  >
+                    <div className="h-12 w-12 rounded-2xl bg-primary-500/10 text-primary-500 border border-primary-500/20 flex items-center justify-center flex-shrink-0">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-foreground/50 mt-0.5">
-                      <span>{PM_LABELS[o.payment_method]}</span>
-                      <span>•</span>
-                      <span>{o.items?.length || 0} item(s)</span>
-                      {o.cashier_name && <><span>•</span><span className="flex items-center gap-1"><User className="h-3 w-3" />{o.cashier_name}</span></>}
-                      <span>•</span>
-                      <span>{new Date(o.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                    {selected === o.id && (
-                      <div className="mt-3 space-y-1.5 animate-fade-in">
-                        {o.items?.map((it, idx) => (
-                          <div key={idx} className="flex justify-between text-sm bg-ink-800/60 border border-white/5 rounded-xl p-2">
-                            <span>
-                              <span className="font-semibold">{it.quantity}x</span> {it.product_name}
-                              {it.selected_options?.length > 0 && <span className="text-primary-500 ml-1">({it.selected_options.join(', ')})</span>}
-                            </span>
-                            <span className="font-semibold">{formatMoney(it.subtotal)}</span>
-                          </div>
-                        ))}
-                        {o.payment_method === 'cash' && o.amount_received != null && (
-                          <div className="flex justify-between text-sm pt-1">
-                            <span className="text-foreground/50">Recibido / Cambio</span>
-                            <span>{formatMoney(o.amount_received)} / <span className="text-success font-semibold">{formatMoney(o.change)}</span></span>
-                          </div>
-                        )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-foreground truncate">{o.customer_name}</p>
+                        <span className="font-heading font-bold text-foreground text-lg">{formatMoney(o.total)}</span>
                       </div>
-                    )}
-                  </div>
-                </button>
+                      <div className="flex items-center gap-2 text-xs text-foreground/50 mt-0.5 flex-wrap">
+                        <span>{PM_LABELS[o.payment_method]}</span>
+                        <span>•</span>
+                        <span>{o.items?.length || 0} item(s)</span>
+                        {o.cashier_name && <><span>•</span><span className="flex items-center gap-1"><User className="h-3 w-3" />{o.cashier_name}</span></>}
+                        <span>•</span>
+                        <span>{new Date(o.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      {selected === o.id && (
+                        <div className="mt-3 space-y-1.5 animate-fade-in">
+                          {o.items?.map((it, idx) => (
+                            <div key={idx} className="flex justify-between text-sm bg-ink-800/60 border border-white/5 rounded-xl p-2">
+                              <span>
+                                <span className="font-semibold">{it.quantity}x</span> {it.product_name}
+                                {it.selected_options?.length > 0 && <span className="text-primary-500 ml-1">({it.selected_options.join(', ')})</span>}
+                              </span>
+                              <span className="font-semibold">{formatMoney(it.subtotal)}</span>
+                            </div>
+                          ))}
+                          {o.payment_method === 'cash' && o.amount_received != null && (
+                            <div className="flex justify-between text-sm pt-1">
+                              <span className="text-foreground/50">Recibido / Cambio</span>
+                              <span>{formatMoney(o.amount_received)} / <span className="text-success font-semibold">{formatMoney(o.change)}</span></span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePrint(o); }}
+                    className="h-10 w-10 rounded-2xl bg-amber/15 border border-amber/30 text-amber hover:bg-amber/25 flex items-center justify-center flex-shrink-0"
+                    title="Imprimir ticket"
+                    data-testid={`print-order-${i}`}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </button>
+                </div>
               );
             })}
           </div>
         )}
       </div>
+      {printing && <ReceiptComp order={printing} business={business} restaurant={restaurant} />}
     </div>
   );
 };

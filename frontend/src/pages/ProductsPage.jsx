@@ -3,8 +3,9 @@ import { productsApi } from '@/utils/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Edit2, Trash2, Upload, Loader2, Coffee, Utensils, X, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Upload, Loader2, Coffee, Utensils, X, Search, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import ImageEditor from '@/components/ImageEditor';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -83,7 +84,7 @@ const ProductsPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar producto…"
-            className="pl-11 h-11 rounded-full bg-ink-800/60 border border-white/5 border-transparent focus:bg-white focus:border-primary-500"
+            className="pl-11 h-11 rounded-full bg-ink-800 border-white/10 focus:border-primary-500 text-foreground"
             data-testid="products-search"
           />
         </div>
@@ -149,18 +150,21 @@ const ProductsPage = () => {
 const ProductForm = ({ editing, onClose, onSave, saving }) => {
   const [form, setForm] = useState(editing || {});
   const [newOption, setNewOption] = useState('');
+  const [editingImage, setEditingImage] = useState(null); // raw uploaded src
 
-  useEffect(() => { setForm(editing || {}); setNewOption(''); }, [editing]);
+  useEffect(() => { setForm(editing || {}); setNewOption(''); setEditingImage(null); }, [editing]);
 
   if (!editing) return null;
 
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 1024 * 1024 * 2) { toast.error('La imagen debe pesar menos de 2MB'); return; }
+    if (file.size > 1024 * 1024 * 5) { toast.error('La imagen debe pesar menos de 5MB'); return; }
     const reader = new FileReader();
-    reader.onload = () => setForm(f => ({ ...f, image: reader.result }));
+    reader.onload = () => setEditingImage(reader.result);
     reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
   };
 
   const submit = (e) => {
@@ -172,41 +176,67 @@ const ProductForm = ({ editing, onClose, onSave, saving }) => {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="rounded-3xl max-w-md max-h-[92vh] overflow-y-auto" data-testid="product-form-modal">
+      <DialogContent className="rounded-3xl max-w-md max-h-[92vh] overflow-y-auto bg-ink-900 border-white/10 text-foreground" data-testid="product-form-modal">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl">{editing.id ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
           <DialogDescription className="text-foreground/50 text-sm">Completa los datos del producto.</DialogDescription>
         </DialogHeader>
+        {editingImage ? (
+          <ImageEditor
+            src={editingImage}
+            onCancel={() => setEditingImage(null)}
+            onConfirm={(dataUrl) => { setForm(f => ({ ...f, image: dataUrl })); setEditingImage(null); }}
+          />
+        ) : (
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className="text-sm font-semibold text-foreground">Imagen</label>
-            <label className="block mt-1 cursor-pointer">
-              <div className="aspect-video bg-ink-800/60 border border-white/5 rounded-2xl overflow-hidden flex items-center justify-center relative">
-                {form.image ? (
-                  <>
-                    <img src={form.image} alt="" className="w-full h-full object-cover" />
-                    <button type="button" onClick={(e) => { e.preventDefault(); setForm(f => ({ ...f, image: '' })); }} className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </>
-                ) : (
-                  <div className="text-center">
-                    <Upload className="h-8 w-8 text-foreground/50 mx-auto mb-2" />
-                    <p className="text-sm text-foreground/50">Subir imagen</p>
+            <div className="mt-1">
+              {form.image ? (
+                <div className="aspect-square bg-ink-800/60 border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center relative max-w-[220px]">
+                  <img src={form.image} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingImage(form.image)}
+                      className="h-8 w-8 rounded-full bg-ink-950/80 backdrop-blur text-primary-500 border border-primary-500/30 flex items-center justify-center hover:bg-primary-500 hover:text-ink-950"
+                      title="Editar imagen"
+                      data-testid="edit-product-image-btn"
+                    ><Pencil className="h-4 w-4" /></button>
+                    <label className="h-8 w-8 rounded-full bg-ink-950/80 backdrop-blur text-foreground/70 border border-white/20 flex items-center justify-center hover:bg-white/10 cursor-pointer" title="Reemplazar">
+                      <Upload className="h-4 w-4" />
+                      <input type="file" accept="image/*" onChange={handleImage} className="hidden" />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, image: '' }))}
+                      className="h-8 w-8 rounded-full bg-ink-950/80 backdrop-blur text-destructive border border-destructive/30 flex items-center justify-center hover:bg-destructive hover:text-white"
+                      title="Quitar imagen"
+                    ><X className="h-4 w-4" /></button>
                   </div>
-                )}
-              </div>
-              <input type="file" accept="image/*" onChange={handleImage} className="hidden" data-testid="product-image-input" />
-            </label>
+                </div>
+              ) : (
+                <label className="cursor-pointer block">
+                  <div className="aspect-square max-w-[220px] bg-ink-800/60 border-2 border-dashed border-white/10 hover:border-primary-500/40 rounded-2xl overflow-hidden flex items-center justify-center transition-all">
+                    <div className="text-center">
+                      <Upload className="h-8 w-8 text-foreground/40 mx-auto mb-2" />
+                      <p className="text-sm text-foreground/50 font-semibold">Subir imagen</p>
+                      <p className="text-xs text-foreground/30 mt-1">Podrás recortarla y ajustarla</p>
+                    </div>
+                  </div>
+                  <input type="file" accept="image/*" onChange={handleImage} className="hidden" data-testid="product-image-input" />
+                </label>
+              )}
+            </div>
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground">Nombre</label>
-            <Input value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Hamburguesa clásica" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent focus:bg-white focus:border-primary-500" data-testid="product-name-input" />
+            <Input value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Hamburguesa clásica" className="mt-1 h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500 text-foreground" data-testid="product-name-input" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-semibold text-foreground">Precio</label>
-              <Input type="number" step="0.01" value={form.price || ''} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent focus:bg-white focus:border-primary-500" data-testid="product-price-input" />
+              <Input type="number" step="0.01" value={form.price || ''} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" className="mt-1 h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500 text-foreground" data-testid="product-price-input" />
             </div>
             <div>
               <label className="text-sm font-semibold text-foreground">Categoría</label>
@@ -216,7 +246,7 @@ const ProductForm = ({ editing, onClose, onSave, saving }) => {
                     key={c}
                     type="button"
                     onClick={() => setForm({ ...form, category: c })}
-                    className={`h-10 rounded-xl text-sm font-semibold capitalize ios-press ${form.category === c ? 'bg-white text-foreground shadow-ios-sm' : 'text-foreground/50'}`}
+                    className={`h-10 rounded-xl text-sm font-semibold capitalize ios-press ${form.category === c ? 'bg-primary-500 text-ink-950 shadow-neon-cyan' : 'text-foreground/50'}`}
                     data-testid={`product-category-${c}`}
                   >
                     {c}
@@ -229,16 +259,16 @@ const ProductForm = ({ editing, onClose, onSave, saving }) => {
             <label className="text-sm font-semibold text-foreground">Opciones personalizadas</label>
             <p className="text-xs text-foreground/50 mb-2">Ej: "sin cebolla", "extra queso"</p>
             <div className="flex gap-2">
-              <Input value={newOption} onChange={(e) => setNewOption(e.target.value)} placeholder="Nueva opción" className="h-11 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent" data-testid="product-option-input" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (newOption.trim()) { setForm(f => ({ ...f, custom_options: [...(f.custom_options || []), newOption.trim()] })); setNewOption(''); } } }} />
-              <Button type="button" variant="outline" className="h-11 rounded-2xl px-4" onClick={() => { if (newOption.trim()) { setForm(f => ({ ...f, custom_options: [...(f.custom_options || []), newOption.trim()] })); setNewOption(''); } }} data-testid="add-option-button">
+              <Input value={newOption} onChange={(e) => setNewOption(e.target.value)} placeholder="Nueva opción" className="h-11 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="product-option-input" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (newOption.trim()) { setForm(f => ({ ...f, custom_options: [...(f.custom_options || []), newOption.trim()] })); setNewOption(''); } } }} />
+              <Button type="button" variant="outline" className="h-11 rounded-2xl px-4 bg-white/5 border-white/10 hover:bg-white/10 text-foreground" onClick={() => { if (newOption.trim()) { setForm(f => ({ ...f, custom_options: [...(f.custom_options || []), newOption.trim()] })); setNewOption(''); } }} data-testid="add-option-button">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {(form.custom_options || []).map((o, i) => (
-                <span key={i} className="inline-flex items-center gap-1 bg-primary-50 text-primary-600 text-sm px-3 py-1 rounded-full">
+                <span key={i} className="inline-flex items-center gap-1 bg-primary-500/15 text-primary-500 border border-primary-500/30 text-sm px-3 py-1 rounded-full">
                   {o}
-                  <button type="button" onClick={() => setForm(f => ({ ...f, custom_options: f.custom_options.filter((_, idx) => idx !== i) }))} data-testid={`remove-option-${i}`}>
+                  <button type="button" onClick={() => setForm(f => ({ ...f, custom_options: f.custom_options.filter((_, idx) => idx !== i) }))} className="hover:text-destructive" data-testid={`remove-option-${i}`}>
                     <X className="h-3 w-3" />
                   </button>
                 </span>
@@ -252,6 +282,7 @@ const ProductForm = ({ editing, onClose, onSave, saving }) => {
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

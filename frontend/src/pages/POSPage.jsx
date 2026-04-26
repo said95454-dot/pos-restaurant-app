@@ -1,19 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { productsApi, ordersApi } from '@/utils/api';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { productsApi, ordersApi, businessApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Minus, Search, ShoppingBag, Utensils, Coffee, Banknote, CreditCard, ArrowRightLeft, Loader2, X, Check, Receipt, Sparkles } from 'lucide-react';
+import { Plus, Minus, Search, ShoppingBag, Utensils, Coffee, Banknote, CreditCard, ArrowRightLeft, Loader2, X, Check, Receipt as ReceiptIcon, Sparkles, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedNumber from '@/components/AnimatedNumber';
+import CashierGate from '@/components/CashierGate';
+import Receipt, { printOrder } from '@/components/Receipt';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 
 const POSPage = () => {
+  return (
+    <CashierGate>
+      <POSContent />
+    </CashierGate>
+  );
+};
+
+const POSContent = () => {
   const { restaurant, cashier } = useAuth();
   const [products, setProducts] = useState([]);
+  const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('todos');
   const [search, setSearch] = useState('');
@@ -26,13 +37,20 @@ const POSPage = () => {
   const [amountReceived, setAmountReceived] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [lastOrder, setLastOrder] = useState(null);
+  const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem('auto_print') !== 'false');
 
   const loadProducts = async () => {
-    try { setProducts(await productsApi.list()); }
-    catch { toast.error('No se pudieron cargar los productos'); }
+    try {
+      const [p, b] = await Promise.all([productsApi.list(), businessApi.get()]);
+      setProducts(p);
+      setBusiness(b);
+    } catch { toast.error('No se pudieron cargar los productos'); }
     finally { setLoading(false); }
   };
   useEffect(() => { loadProducts(); }, []);
+
+  useEffect(() => { localStorage.setItem('auto_print', String(autoPrint)); }, [autoPrint]);
 
   const filtered = useMemo(() => products.filter(p => {
     const catMatch = activeCategory === 'todos' || p.category === activeCategory;
@@ -82,7 +100,7 @@ const POSPage = () => {
     }
     setSubmitting(true);
     try {
-      await ordersApi.create({
+      const order = await ordersApi.create({
         customer_name: customer.trim(),
         items: cart.map(it => ({
           product_id: it.product.id,
@@ -100,9 +118,16 @@ const POSPage = () => {
         cashier_name: cashier?.name || null,
       });
       toast.success(`Venta registrada: ${formatMoney(total)}`);
+      setLastOrder(order);
       setCart([]); setCustomer(''); setAmountReceived(''); setShowCheckout(false); setShowCart(false);
+      if (autoPrint) printOrder();
     } catch (e) { toast.error(e.response?.data?.detail || 'Error al registrar la venta'); }
     finally { setSubmitting(false); }
+  };
+
+  const handleManualPrint = () => {
+    if (!lastOrder) { toast.error('No hay venta reciente para imprimir'); return; }
+    printOrder();
   };
 
   const categories = [
@@ -124,15 +149,30 @@ const POSPage = () => {
                 {restaurant?.restaurant_name}
               </h1>
             </div>
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar producto…"
-                className="pl-11 h-11 rounded-full bg-ink-800/60 border border-white/5 focus:border-primary-500 text-foreground placeholder:text-foreground/30"
-                data-testid="pos-search-input"
-              />
+            <div className="relative w-full max-w-xs flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar producto…"
+                  className="pl-11 h-11 rounded-full bg-ink-800/60 border border-white/5 focus:border-primary-500 text-foreground placeholder:text-foreground/30"
+                  data-testid="pos-search-input"
+                />
+              </div>
+              {lastOrder && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={handleManualPrint}
+                  className="h-11 w-11 rounded-full bg-amber/15 border border-amber/30 text-amber hover:bg-amber/25 flex items-center justify-center flex-shrink-0"
+                  title="Reimprimir último ticket"
+                  data-testid="reprint-last-button"
+                >
+                  <Printer className="h-5 w-5" />
+                </motion.button>
+              )}
             </div>
           </div>
 
@@ -344,11 +384,24 @@ const POSPage = () => {
           <DialogFooter className="flex-row gap-2 sm:gap-2">
             <Button variant="outline" className="flex-1 h-12 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10" onClick={() => setShowCheckout(false)}>Cancelar</Button>
             <Button className="flex-1 h-12 rounded-2xl bg-success hover:bg-success/90 text-ink-950 font-bold" onClick={handleCheckout} disabled={submitting} data-testid="confirm-checkout-button">
-              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Receipt className="h-4 w-4 mr-1" /> Cobrar</>}
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ReceiptIcon className="h-4 w-4 mr-1" /> Cobrar</>}
             </Button>
           </DialogFooter>
+          <button
+            type="button"
+            onClick={() => setAutoPrint(!autoPrint)}
+            className={`flex items-center justify-center gap-2 h-9 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+              autoPrint ? 'bg-amber/15 text-amber border border-amber/30' : 'bg-white/5 text-foreground/50 border border-white/10'
+            }`}
+            data-testid="auto-print-toggle"
+          >
+            <Printer className="h-3.5 w-3.5" /> {autoPrint ? 'Imprimir automáticamente: ON' : 'Imprimir automáticamente: OFF'}
+          </button>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden print receipt (rendered when there's a last order) */}
+      {lastOrder && <Receipt order={lastOrder} business={business} restaurant={restaurant} />}
     </div>
   );
 };

@@ -60,6 +60,7 @@ const AppLayout = () => {
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV.map(({ to, label, icon: Icon, testId }) => {
             const isActive = location.pathname === to;
+            const needsCashier = to === '/pos' && !cashier;
             return (
               <NavLink key={to} to={to} data-testid={testId} className="block">
                 <motion.div
@@ -78,7 +79,12 @@ const AppLayout = () => {
                   )}
                   <Icon className={`relative h-5 w-5 ${isActive ? 'text-glow-cyan' : ''}`} strokeWidth={isActive ? 2.2 : 1.7} />
                   <span className="relative">{label}</span>
-                  {isActive && <motion.span layoutId="active-nav-dot" className="relative ml-auto h-1.5 w-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(0,240,255,0.8)]" />}
+                  {needsCashier && (
+                    <span className="relative ml-auto inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber/15 text-amber border border-amber/30" title="Requiere cajero">
+                      🔒
+                    </span>
+                  )}
+                  {isActive && !needsCashier && <motion.span layoutId="active-nav-dot" className="relative ml-auto h-1.5 w-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(0,240,255,0.8)]" />}
                 </motion.div>
               </NavLink>
             );

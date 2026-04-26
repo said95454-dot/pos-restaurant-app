@@ -90,10 +90,11 @@ input, textarea, [contenteditable] { -webkit-user-select: text; user-select: tex
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(60% 60% at 20% 20%, rgba(0, 240, 255, 0.45), transparent 60%),
-    radial-gradient(50% 50% at 80% 30%, rgba(177, 78, 255, 0.40), transparent 65%),
-    radial-gradient(40% 40% at 50% 80%, rgba(255, 138, 61, 0.30), transparent 70%),
-    radial-gradient(45% 45% at 90% 90%, rgba(0, 240, 255, 0.30), transparent 65%);
+    radial-gradient(60% 60% at 18% 22%, rgba(255, 138, 61, 0.55), transparent 62%),
+    radial-gradient(50% 50% at 82% 28%, rgba(255, 60, 80, 0.40), transparent 65%),
+    radial-gradient(40% 40% at 50% 78%, rgba(255, 200, 60, 0.28), transparent 68%),
+    radial-gradient(45% 45% at 92% 88%, rgba(177, 78, 255, 0.30), transparent 65%),
+    radial-gradient(35% 35% at 8% 90%, rgba(0, 240, 255, 0.22), transparent 68%);
   animation: aurora-shift 22s ease-in-out infinite;
 }
 .aurora::after {
@@ -214,4 +215,53 @@ input, textarea, [contenteditable] { -webkit-user-select: text; user-select: tex
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   cursor: pointer;
+}
+
+/* Force visible text in dark inputs */
+input, textarea, select {
+  color: #ECECF1;
+  caret-color: #00F0FF;
+}
+input::placeholder, textarea::placeholder { color: rgba(236, 236, 241, 0.30); }
+
+/* Restaurant-themed pattern overlay (subtle dotted/diamond grid) */
+.kitchen-pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.08;
+  background-image:
+    radial-gradient(rgba(255,138,61,0.6) 1px, transparent 1px),
+    radial-gradient(rgba(255,200,60,0.4) 1px, transparent 1px);
+  background-size: 28px 28px, 56px 56px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* ===== PRINT STYLES (universal printer support) ===== */
+@media print {
+  /* Hide everything except printable area */
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    color: black !important;
+    font-family: 'Courier New', ui-monospace, monospace !important;
+    padding: 8mm !important;
+  }
+  .print-area * { color: black !important; background: transparent !important; box-shadow: none !important; }
+  .print-area .print-divider { border-top: 1px dashed #000 !important; margin: 6px 0 !important; }
+  .print-area .print-bold { font-weight: 800 !important; }
+  .print-area .print-center { text-align: center !important; }
+  .print-area .print-row { display: flex !important; justify-content: space-between !important; gap: 8px !important; }
+  .print-area .print-large { font-size: 14pt !important; }
+  .print-area .print-xl { font-size: 18pt !important; }
+  .print-area .print-small { font-size: 9pt !important; }
+  /* Hide Emergent badge etc */
+  #emergent-badge, .no-print { display: none !important; }
+  @page { margin: 0; size: 80mm auto; } /* thermal printer 80mm width */
 }

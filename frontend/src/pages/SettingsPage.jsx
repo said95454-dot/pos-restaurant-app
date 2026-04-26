@@ -80,7 +80,7 @@ const SettingsPage = () => {
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-foreground">Nombre del restaurante</label>
-                  <Input value={business?.name || ''} onChange={(e) => setBusiness({ ...business, name: e.target.value })} className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/5 border-transparent" data-testid="business-name-input" />
+                  <Input value={business?.name || ''} onChange={(e) => setBusiness({ ...business, name: e.target.value })} className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="business-name-input" />
                 </div>
                 <Button onClick={save} className="h-12 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan px-5" disabled={saving} data-testid="save-business-button">
                   {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Guardar cambios
