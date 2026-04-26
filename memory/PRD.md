@@ -1,48 +1,46 @@
-# PRD - POS Restaurante (PWA)
+# PRD - POS Restaurante (PWA Futurista)
 
 ## Problema Original
-Usuario clonó https://github.com/said95454-dot/pos-restaurant-app — repositorio multi-tenant con backend completo (FastAPI) pero frontend incompleto. Pidió compilar/arreglar errores y hacer una app válida para iPhone, iPad y Mac. Tras explicar opciones, eligió **Opción A: PWA (Progressive Web App)**.
+Usuario clonó https://github.com/said95454-dot/pos-restaurant-app y pidió compilar/arreglar errores y hacer una app válida para iPhone, iPad y Mac. Tras explicar opciones, eligió Opción A: PWA. Después pidió un rediseño "más futurista, espectacular con animaciones, no básico".
 
 ## Estado Actual (Enero 2026)
 
 ### Implementado ✅
 
-#### Backend (FastAPI + MongoDB + JWT) — `/app/backend/server.py`
-- Auth multi-restaurante (`/api/auth/restaurant/register`, `/api/auth/restaurant/login`, `/api/auth/me`)
-- Recuperación de contraseña con código (Resend) — funcional pero sin API key configurada
-- Productos CRUD (multi-tenant) con imágenes base64, categorías (comida/bebida) y opciones personalizadas
-- Órdenes (crear, listar con filtros por fecha y cajero, marcar como impreso)
-- Cajeros CRUD con login por PIN o contraseña
-- Estadísticas: ventas diarias, rango, top productos
-- Corte de caja: fondo inicial, esperado, real, diferencia
-- Configuración del negocio (nombre, logo)
+#### Backend (FastAPI + MongoDB + JWT) — `/app/backend/server.py` — sin cambios
+- Auth multi-restaurante, productos, órdenes, cajeros, stats, corte de caja
+- 23/23 tests pytest (100%)
 
-#### Frontend (React 19 + Tailwind + shadcn/ui) — Diseño iOS premium
-- `LoginPage`, `RegisterPage`, `ForgotPasswordPage`, `ResetPasswordPage`
-- `POSPage` — pantalla de ventas con grid de productos, carrito (sidebar desktop / drawer mobile), checkout con efectivo/tarjeta/transferencia y cálculo de cambio
-- `ProductsPage` — CRUD con upload de imagen, opciones personalizadas
-- `OrdersPage` — historial con filtro de fecha y detalles expandibles
-- `StatsPage` — ventas diarias, top productos, gráfico de rango con recharts
-- `CashRegisterPage` — corte de caja con cálculo de diferencias
-- `CashiersPage` — CRUD + login por PIN/contraseña
-- `SettingsPage` — branding del restaurante + instrucciones para instalar PWA
+#### Frontend (React 19 + Tailwind + framer-motion + shadcn/ui)
+**Look futurista premium**:
+- 🌑 Tema oscuro espacial (#06070D) con neón cian (#00F0FF) y violeta (#B14EFF)
+- 🌌 **Aurora animada** de fondo (gradientes radiales con animación 22s)
+- 💎 **Glassmorphism profundo** (blur 28-40px, saturate 180%)
+- ✨ **Ícono con conic-border giratorio** y glow neón
+- 🎬 **Splash screen cinematográfico** al iniciar (1.4s)
+- 🔢 **Contadores animados** (framer-motion useSpring) en totales y stats
+- 🎯 **Active-pill animado** en navegación con `layoutId` (transición fluida entre tabs)
+- 💫 **Page transitions** suaves entre rutas
+- 🎨 Productos con hover `-translate-y-1` + glow cian al pasar el cursor
+- ⚡ Botones primarios con `shadow-neon-cyan` (glow real)
+- 📊 Gráficos recharts con gradiente cyan→violeta
+- 🌟 Pulse-dot en indicadores "live" (cajero activo)
+- ✨ Shimmer skeletons en lugar de spinners
+- 🔠 Tipografía: **Outfit** (headings) + **Manrope** (body) + **JetBrains Mono** (números)
+- 🌫 Grain texture sutil en fondos para profundidad
 
-#### PWA — Instalable en iPhone, iPad y Mac
-- `manifest.json` con `display: standalone`, theme color iOS
-- `apple-touch-icon`, `apple-mobile-web-app-capable`
-- Iconos 192/512/180 generados
-- Safe-area insets (notch, home indicator)
-- Fuentes Outfit + Manrope (no Inter/Roboto)
-- Layout adaptativo: sidebar en desktop/iPad, bottom nav en iPhone
+**Páginas**: Login, Register, ForgotPassword, ResetPassword, POS, Productos, Órdenes, Estadísticas, Corte de Caja, Cajeros, Ajustes — todas re-skineadas a tema futurista oscuro.
 
-### Tecnologías
-- **Backend**: FastAPI, MongoDB (motor), JWT, bcrypt/passlib, Resend
-- **Frontend**: React 19, Tailwind CSS, shadcn/ui, lucide-react, recharts, sonner, axios
+**PWA**: manifest.json con `theme_color: #06070D`, `apple-mobile-web-app-status-bar-style: black-translucent`, íconos generados con glow neón.
+
+### Tecnologías nuevas agregadas
+- **framer-motion 12.38** (animaciones, page transitions, layoutId, AnimatePresence)
+- JetBrains Mono para números
 
 ### Testing
-- Backend: 23/23 tests pytest pasados (100%)
-- Frontend: Todos los flujos validados (100%)
-- Issue crítico (badge bloqueando botón Cobrar) resuelto y verificado
+- Iteración 4: 14/14 tests pasados (100%) — todas las funcionalidades preservadas tras el redesign
+- Sin errores de consola, sin contraste roto, sin regresiones
+- Validado en desktop (1280x800) y móvil (390x844)
 
 ### Credenciales demo
 - Email: demo@restaurant.com
@@ -50,24 +48,24 @@ Usuario clonó https://github.com/said95454-dot/pos-restaurant-app — repositor
 
 ## Próximos Pasos / Backlog
 
-### P0 (siguientes)
-- Configurar `RESEND_API_KEY` en backend/.env para que la recuperación de contraseña envíe emails reales
-- Agregar la app a iPhone/iPad/Mac (Safari → Compartir → "Añadir a pantalla de inicio")
+### P0
+- Configurar `RESEND_API_KEY` para emails de recuperación
 
 ### P1
-- Soporte offline básico (Service Worker para cache de productos)
-- Impresión de tickets via Bluetooth/AirPrint
-- Multimoneda y configuración de impuestos
-- Notificaciones push (web push)
+- Service Worker para offline básico
+- Impresión de tickets vía AirPrint
+- Sonido de "cha-ching" al cobrar
+- Confeti animado al cerrar caja con cero diferencia
 
 ### P2
-- App nativa con Expo (React Native) para distribución en App Store
-- Sincronización offline-first con conflict resolution
+- App nativa Expo para App Store
+- Modo "presentación" para pantalla pública del menú
 - Reportes exportables (CSV/PDF)
-- Programa de lealtad y descuentos por cliente
+- Multi-idioma (ES/EN)
 
 ## Arquitectura
-- 1 backend FastAPI multi-tenant (los datos de cada restaurante están aislados por `restaurant_id`)
-- 1 frontend React PWA (un solo build sirve a iPhone, iPad y Mac vía Safari)
-- MongoDB como base de datos principal
-- JWT en localStorage del navegador para sesiones
+- 1 backend FastAPI multi-tenant
+- 1 frontend React PWA (instalable en iPhone, iPad, Mac via Safari)
+- MongoDB
+- JWT en localStorage
+- framer-motion para animaciones, recharts para gráficos
