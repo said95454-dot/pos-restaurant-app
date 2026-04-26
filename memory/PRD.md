@@ -1,71 +1,85 @@
-# PRD - POS Restaurante (PWA Futurista)
+# PRD - POS Restaurante (PWA Futurista v2.1)
 
 ## Problema Original
-Usuario clonó https://github.com/said95454-dot/pos-restaurant-app y pidió compilar/arreglar errores y hacer una app válida para iPhone, iPad y Mac. Tras explicar opciones, eligió Opción A: PWA. Después pidió un rediseño "más futurista, espectacular con animaciones, no básico".
+POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
+1. Compilar el repo y arreglar errores
+2. Que sea instalable en iPhone, iPad y Mac (PWA)
+3. Diseño futurista espectacular con animaciones
+4. **5 mejoras finales (esta iteración)**:
+   - Bloquear venta sin cajero activo
+   - Fondo temático restaurante
+   - Imprimir pedido (universal)
+   - Inputs con texto visible
+   - Editor de imagen al agregar productos
 
-## Estado Actual (Enero 2026)
+## Estado Actual (Enero 2026) — v2.1
 
-### Implementado ✅
+### Implementado y Validado ✅
 
-#### Backend (FastAPI + MongoDB + JWT) — `/app/backend/server.py` — sin cambios
-- Auth multi-restaurante, productos, órdenes, cajeros, stats, corte de caja
-- 23/23 tests pytest (100%)
+**Backend** (`/app/backend/server.py`) — 100% tests pasados, sin cambios
 
-#### Frontend (React 19 + Tailwind + framer-motion + shadcn/ui)
-**Look futurista premium**:
-- 🌑 Tema oscuro espacial (#06070D) con neón cian (#00F0FF) y violeta (#B14EFF)
-- 🌌 **Aurora animada** de fondo (gradientes radiales con animación 22s)
-- 💎 **Glassmorphism profundo** (blur 28-40px, saturate 180%)
-- ✨ **Ícono con conic-border giratorio** y glow neón
-- 🎬 **Splash screen cinematográfico** al iniciar (1.4s)
-- 🔢 **Contadores animados** (framer-motion useSpring) en totales y stats
-- 🎯 **Active-pill animado** en navegación con `layoutId` (transición fluida entre tabs)
-- 💫 **Page transitions** suaves entre rutas
-- 🎨 Productos con hover `-translate-y-1` + glow cian al pasar el cursor
-- ⚡ Botones primarios con `shadow-neon-cyan` (glow real)
-- 📊 Gráficos recharts con gradiente cyan→violeta
-- 🌟 Pulse-dot en indicadores "live" (cajero activo)
-- ✨ Shimmer skeletons en lugar de spinners
-- 🔠 Tipografía: **Outfit** (headings) + **Manrope** (body) + **JetBrains Mono** (números)
-- 🌫 Grain texture sutil en fondos para profundidad
+**Frontend** — 100% tests pasados (iteración 5):
 
-**Páginas**: Login, Register, ForgotPassword, ResetPassword, POS, Productos, Órdenes, Estadísticas, Corte de Caja, Cajeros, Ajustes — todas re-skineadas a tema futurista oscuro.
+#### Nuevas funciones de esta versión
+- 🔒 **CashierGate**: el POS está bloqueado hasta que un cajero inicie sesión. Si no hay cajeros, redirige a crearlos. Cada cajero entra con PIN o contraseña.
+- 🪧 **Lock badge** en el tab "Vender" mientras no haya cajero activo.
+- 🍽️ **Fondo temático restaurante**: aurora con tonos cálidos (naranja, ámbar, rojo) + violeta/cian + patrón punteado sutil tipo cocina.
+- 🖨️ **Impresión universal de tickets**:
+  - Compatible con AirPrint (iOS/Mac), Bluetooth, USB, red, impresoras térmicas (80mm)
+  - `Receipt.jsx` renderiza un ticket con logo, fecha, folio, productos, opciones, total, método de pago, cambio
+  - Auto-impresión opcional al cobrar (toggle `auto-print-toggle`)
+  - Botón "reimprimir último" en el header del POS
+  - Botón de imprimir en cada orden del historial `/orders`
+  - Estilos `@media print` con `@page size: 80mm auto`
+- ✏️ **Inputs visibles**: corregido el bug de `focus:bg-white` que volvía el texto invisible. Ahora `text-foreground` siempre + `caret-color: cyan`.
+- 📸 **Editor de imagen** (`ImageEditor.jsx`): al subir foto de producto se abre canvas con zoom (slider + botones), pan (arrastrar), rotación 90°, reset, y guarda como JPEG 600×600 base64.
 
-**PWA**: manifest.json con `theme_color: #06070D`, `apple-mobile-web-app-status-bar-style: black-translucent`, íconos generados con glow neón.
+#### Funciones existentes (preservadas)
+- Auth multi-restaurante
+- Productos CRUD con opciones personalizadas
+- Órdenes con filtros + reimpresión
+- Estadísticas con animated counters + chart
+- Corte de caja
+- Cajeros CRUD con PIN/contraseña + sesión activa
+- Configuración + branding del negocio
+- PWA: manifest, íconos con glow, theme dark, instalable en iPhone/iPad/Mac
 
-### Tecnologías nuevas agregadas
-- **framer-motion 12.38** (animaciones, page transitions, layoutId, AnimatePresence)
-- JetBrains Mono para números
+### Tecnologías
+- React 19, FastAPI, MongoDB, JWT
+- framer-motion, recharts, shadcn/ui, lucide-react, sonner
+- Canvas-based image cropper (sin deps adicionales)
 
-### Testing
-- Iteración 4: 14/14 tests pasados (100%) — todas las funcionalidades preservadas tras el redesign
-- Sin errores de consola, sin contraste roto, sin regresiones
-- Validado en desktop (1280x800) y móvil (390x844)
+### Tests
+- Iteración 5: 7/7 grupos de tests pasados (100% frontend)
+- Backend: 100% (sin cambios desde iter 3)
+- Cero errores de consola
 
 ### Credenciales demo
 - Email: demo@restaurant.com
 - Pwd: demo1234
+- Cajeros existentes: "siko" (PIN 1234), "TestCashier1" (PIN 1234)
 
-## Próximos Pasos / Backlog
+## Backlog (siguiente)
 
 ### P0
-- Configurar `RESEND_API_KEY` para emails de recuperación
+- Configurar `RESEND_API_KEY` para emails reales
 
 ### P1
-- Service Worker para offline básico
-- Impresión de tickets vía AirPrint
-- Sonido de "cha-ching" al cobrar
-- Confeti animado al cerrar caja con cero diferencia
+- Refactor de POSPage (>500 líneas, extraer CartContent, ProductCard a archivos)
+- Render condicional de Receipt (solo durante impresión, no permanente en DOM)
+- Scope de `auto_print` por restaurant_id (multi-tenant safety)
+- Sonido "cha-ching" al cobrar
+- Web Bluetooth API directo para impresoras térmicas sin pasar por OS
 
 ### P2
-- App nativa Expo para App Store
-- Modo "presentación" para pantalla pública del menú
-- Reportes exportables (CSV/PDF)
-- Multi-idioma (ES/EN)
+- App nativa Expo
+- Service Worker offline
+- Pantalla del cliente (modo presentación)
+- Reportes CSV/PDF
 
 ## Arquitectura
-- 1 backend FastAPI multi-tenant
-- 1 frontend React PWA (instalable en iPhone, iPad, Mac via Safari)
+- Backend FastAPI multi-tenant (datos aislados por `restaurant_id`)
+- Frontend PWA (1 build → iPhone, iPad, Mac vía Safari)
 - MongoDB
 - JWT en localStorage
-- framer-motion para animaciones, recharts para gráficos
+- Print via window.print() universal
