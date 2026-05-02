@@ -12,13 +12,25 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
    - Inputs con texto visible
    - Editor de imagen al agregar productos
 
-## Estado Actual (Enero 2026) — v2.1
+## Estado Actual (Enero 2026) — v2.2
 
 ### Implementado y Validado ✅
 
-**Backend** (`/app/backend/server.py`) — 100% tests pasados, sin cambios
+**Backend** — 26/26 tests pasados (incluye 3 nuevos QR tests)
 
-**Frontend** — 100% tests pasados (iteración 5):
+**Frontend** — 100% tests pasados (iteración 6)
+
+#### Nuevas funciones de v2.2
+- 📧 **Resend integrado**: API key configurada (`re_cr9PFRPF…`). Recuperación de contraseña funcional. ⚠️ **Nota Resend free tier**: solo envía a `said95454@gmail.com` (tu email verificado). Para enviar a otros, verifica un dominio en resend.com/domains.
+- 📱 **QR único en cada ticket impreso**:
+  - Configurable desde **Ajustes → "QR en cada ticket"**
+  - URL configurable (Google Reviews, Instagram, WhatsApp, menú online, etc.)
+  - Label personalizable ("¡Déjanos tu reseña!", etc.)
+  - Live preview en Settings (con QRCodeCanvas)
+  - Cada QR incluye `?ref={order_id}` para tracking de qué orden lo generó
+  - Renderizado en el ticket impreso vía `qrcode.react`
+  - Persistente en MongoDB en `business.qr_url` y `business.qr_label`
+  - Demo account viene pre-configurado con un QR de ejemplo
 
 #### Nuevas funciones de esta versión
 - 🔒 **CashierGate**: el POS está bloqueado hasta que un cajero inicie sesión. Si no hay cajeros, redirige a crearlos. Cada cajero entra con PIN o contraseña.
