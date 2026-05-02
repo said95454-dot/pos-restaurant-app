@@ -3,9 +3,10 @@ import { businessApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Upload, X, Save, LogOut, Smartphone, Info } from 'lucide-react';
+import { Loader2, Upload, X, Save, LogOut, Smartphone, QrCode, ExternalLink, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const SettingsPage = () => {
   const save = async () => {
     setSaving(true);
     try {
-      await businessApi.update({ name: business.name, logo: business.logo });
+      await businessApi.update({ name: business.name, logo: business.logo, qr_url: business.qr_url || '', qr_label: business.qr_label || '' });
       toast.success('Cambios guardados');
     } catch { toast.error('Error al guardar'); }
     finally { setSaving(false); }
@@ -84,6 +85,77 @@ const SettingsPage = () => {
                 </div>
                 <Button onClick={save} className="h-12 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan px-5" disabled={saving} data-testid="save-business-button">
                   {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Guardar cambios
+                </Button>
+              </div>
+            </div>
+
+            {/* QR on receipts */}
+            <div className="glass rounded-3xl p-5" data-testid="qr-config-card">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="h-10 w-10 rounded-2xl bg-amber/15 border border-amber/30 text-amber flex items-center justify-center flex-shrink-0">
+                  <QrCode className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg font-bold text-foreground">QR en cada ticket</h3>
+                  <p className="text-sm text-foreground/50">Imprime un QR único en cada nota para que tu cliente deje propina, reseña o vea tu menú.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-semibold text-foreground">URL del QR</label>
+                  <p className="text-xs text-foreground/50 mb-1">Pega aquí tu link de Google Reviews, Instagram, WhatsApp, menú online, etc.</p>
+                  <Input
+                    value={business?.qr_url || ''}
+                    onChange={(e) => setBusiness({ ...business, qr_url: e.target.value })}
+                    placeholder="https://g.page/r/tu-restaurante/review"
+                    className="mt-1 h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500 text-foreground"
+                    data-testid="qr-url-input"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-foreground">Texto sobre el QR (opcional)</label>
+                  <Input
+                    value={business?.qr_label || ''}
+                    onChange={(e) => setBusiness({ ...business, qr_label: e.target.value })}
+                    placeholder="¡Déjanos tu reseña!"
+                    maxLength={32}
+                    className="mt-1 h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500 text-foreground"
+                    data-testid="qr-label-input"
+                  />
+                </div>
+
+                {business?.qr_url && (
+                  <div className="bg-ink-800/60 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4" data-testid="qr-preview">
+                    <div className="bg-white p-3 rounded-2xl flex-shrink-0">
+                      <QRCodeCanvas value={business.qr_url} size={120} level="M" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-center sm:text-left">
+                      {business?.qr_label && (
+                        <p className="font-bold text-foreground mb-1">{business.qr_label}</p>
+                      )}
+                      <p className="text-xs text-foreground/50 break-all">{business.qr_url}</p>
+                      <div className="flex gap-2 mt-3 flex-wrap justify-center sm:justify-start">
+                        <a href={business.qr_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-primary-500 hover:text-glow-cyan">
+                          <ExternalLink className="h-3 w-3" /> Probar
+                        </a>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(business.qr_url); toast.success('Copiado'); }}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-foreground/60 hover:text-foreground"
+                        >
+                          <Copy className="h-3 w-3" /> Copiar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-amber/5 border border-amber/20 rounded-2xl p-3 text-xs text-foreground/70 leading-relaxed">
+                  <b className="text-amber">💡 Tip:</b> Para Google Reviews, ve a <b>Google Business Profile → Pedir reseñas → Compartir formulario</b>. Para Instagram, usa <code className="text-primary-500">https://instagram.com/tu_negocio</code>. Para WhatsApp, <code className="text-primary-500">https://wa.me/52TUTELÉFONO</code>.
+                </div>
+
+                <Button onClick={save} className="h-12 rounded-2xl bg-amber hover:bg-amber/90 text-ink-950 font-bold px-5" disabled={saving} data-testid="save-qr-button">
+                  {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <QrCode className="h-4 w-4 mr-2" />} Guardar QR
                 </Button>
               </div>
             </div>

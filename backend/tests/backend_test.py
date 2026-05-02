@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://c641ddae-2ee0-4a6a-baba-a77b412cb102.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://resto-pos-hub-11.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
 DEMO_EMAIL = "demo@restaurant.com"
@@ -107,6 +107,38 @@ class TestBusiness:
         # Verify persistence
         r2 = s.get(f"{API}/business", headers=auth_headers)
         assert r2.json()["name"] == new_name
+
+    # ===== QR config (iteration_6) =====
+    def test_business_has_qr_fields(self, s, auth_headers):
+        r = s.get(f"{API}/business", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        # Fields must exist (may be null/empty initially)
+        assert "qr_url" in data
+        assert "qr_label" in data
+
+    def test_update_qr_persists(self, s, auth_headers):
+        qr_url = f"https://example.com/review?id={uuid.uuid4().hex[:6]}"
+        qr_label = "TEST_¡Déjanos tu reseña!"
+        r = s.put(f"{API}/business", headers=auth_headers,
+                  json={"qr_url": qr_url, "qr_label": qr_label})
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["qr_url"] == qr_url
+        assert body["qr_label"] == qr_label
+
+        # Persistence check
+        r2 = s.get(f"{API}/business", headers=auth_headers)
+        assert r2.status_code == 200
+        assert r2.json()["qr_url"] == qr_url
+        assert r2.json()["qr_label"] == qr_label
+
+    def test_update_qr_clear(self, s, auth_headers):
+        # Setting empty string should still be accepted (BusinessUpdate keeps empty values out via filter,
+        # but since "" is not None, it should be persisted)
+        r = s.put(f"{API}/business", headers=auth_headers,
+                  json={"qr_url": "", "qr_label": ""})
+        assert r.status_code == 200
 
 
 # ===== Products =====

@@ -1,0 +1,33 @@
+{
+  "summary": "Full backend + frontend test of iteration_6 (QR per restaurant + Resend forgot-password). Backend: 26/26 pytest passed including 3 NEW QR tests (test_business_has_qr_fields, test_update_qr_persists, test_update_qr_clear) and existing test_forgot_password (Resend integration responds 200 with API key set). Frontend verified end-to-end at 1920x1080: (1) /settings shows 'QR en cada ticket' card with all 3 testids (qr-config-card, qr-url-input, qr-label-input, save-qr-button); (2) typing URL shows live qr-preview with rendered <canvas>; (3) save persists — reloaded page shows same qr_url + qr_label; (4) completed a sale on /pos with TEST_QR_Cust + TEST_QRTaco $50 cash, .print-area DOM contains exactly 1 <canvas width=128> + the 'TEST_¡Reseña!' label + 'Escanea con tu celular' + 'Gracias' — all confirmed via DOM inspection; (5) reprint-last-button still works post-sale and re-renders QR. Regression: cashier gate (siko/PIN 1234), product cards, cart, checkout modal, payment-cash, auto-print toggle, navigation to /products /orders /stats /cash-register all functional with no console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/iteration_6.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BusinessUpdate filter `if v is not None` allows clearing qr_url/qr_label by sending '' (empty string) but does NOT allow clearing by sending null — minor inconsistency. Frontend always sends '' so it works.",
+    "Receipt.jsx renders QRCodeCanvas inline at fixed position left:-10000px; for large carts the canvas is created on every order — acceptable but could be memoized via React.memo on Receipt for perf if scaling.",
+    "buildQrUrl mutates the URL by appending ?ref=<orderid8> — be aware that some Google Reviews short links (g.page) may break when extra query params are added. Consider opt-in toggle for ref-tracking in Settings.",
+    "(carry-over) server.py is 854 lines — should be split into routers (auth, business, products, orders, cashiers, stats, cash_register).",
+    "(carry-over) POSPage.jsx ~566 lines, still a candidate for splitting CartContent / ProductCard into separate files.",
+    "Resend free tier: forgot-password endpoint returns 200 but Resend will only deliver to said95454@gmail.com (the verified account email) until a domain is verified. This is a Resend constraint — the API call itself works. For production, user must verify their domain in Resend dashboard."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added 3 QR tests + fixed BASE_URL fallback to current preview URL)"
+  ],
+  "success_rate": {"backend": "100% (26/26)", "frontend": "100% (all 7 features + regression passed)"},
+  "test_credentials": "demo@restaurant.com / demo1234 (restaurant); cashier 'siko' PIN 1234",
+  "seed_data_creation": "Created 1 product 'TEST_QRTaco' ($50, no options) for the QR receipt test, then DELETED at end. Saved QR config to demo restaurant: qr_url='https://g.page/r/test-restaurant/review', qr_label='TEST_¡Reseña!' — these remain on the demo account as intentional seed so user can immediately see the QR feature working on first login. 1 sale registered (TEST_QR_Cust $50 cash) visible in /orders.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "POS uses these testids: pos-product-{uuid}, cart-checkout-button, checkout-modal, checkout-customer-input, payment-cash/card/transfer, checkout-amount-input, confirm-checkout-button, auto-print-toggle (label 'Imprimir automáticamente: ON/OFF'), reprint-last-button (appears only after first sale of the session). Settings uses qr-config-card, qr-url-input, qr-label-input, qr-preview, save-qr-button. Receipt is rendered as .print-area with QRCodeCanvas (size=128) when business.qr_url is set. Demo account has QR pre-configured for quick testing.",
+  "rca of the issue": "N/A — no issues. All 7 requested test points pass."
+}

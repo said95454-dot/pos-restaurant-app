@@ -1,21 +1,32 @@
 import React from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 const PM = { cash: 'EFECTIVO', card: 'TARJETA', transfer: 'TRANSFERENCIA' };
 
+/** Build the URL printed as QR. Includes ref for tracking which order generated the scan. */
+const buildQrUrl = (baseUrl, orderId) => {
+  if (!baseUrl) return null;
+  try {
+    const url = new URL(baseUrl);
+    if (orderId) url.searchParams.set('ref', orderId.slice(0, 8));
+    return url.toString();
+  } catch {
+    // Not a valid URL — return as-is (could be plain text the user wants encoded)
+    return baseUrl;
+  }
+};
+
 /**
  * Printable receipt rendered hidden in the DOM.
  * Compatible with ANY printer via the OS print dialog (window.print()):
- * - AirPrint (iOS/macOS)
- * - Bluetooth thermal printers (paired at OS level)
- * - USB / Network thermal printers
- * - Standard A4/Letter printers
- *
- * Page is set to 80mm (thermal) but works fine on any paper size.
+ * - AirPrint (iOS/macOS), Bluetooth, USB, Network, Thermal printers
+ * - Page set to 80mm (thermal) but works on A4/Letter too.
  */
 const Receipt = React.forwardRef(({ order, business, restaurant }, ref) => {
   if (!order) return null;
   const date = new Date(order.created_at || Date.now());
+  const qrUrl = buildQrUrl(business?.qr_url, order.id);
   return (
     <div ref={ref} className="print-area" style={{ position: 'fixed', left: '-10000px', top: 0, width: '80mm' }}>
       <div className="print-center print-bold print-large">{business?.name || restaurant?.restaurant_name || 'Restaurante'}</div>
@@ -75,6 +86,17 @@ const Receipt = React.forwardRef(({ order, business, restaurant }, ref) => {
         </>
       )}
       <div className="print-divider" />
+      {qrUrl && (
+        <div className="print-center" style={{ marginTop: 8, marginBottom: 4 }}>
+          {business?.qr_label && (
+            <div className="print-bold print-small" style={{ marginBottom: 4 }}>{business.qr_label}</div>
+          )}
+          <div style={{ display: 'inline-block', padding: 4, background: '#fff' }}>
+            <QRCodeCanvas value={qrUrl} size={128} level="M" includeMargin={false} />
+          </div>
+          <div className="print-small" style={{ marginTop: 4 }}>Escanea con tu celular</div>
+        </div>
+      )}
       <div className="print-center print-small" style={{ marginTop: 8 }}>¡Gracias por su visita!</div>
       <div className="print-center print-small">Vuelva pronto</div>
       <div style={{ height: 30 }} />
@@ -87,7 +109,6 @@ Receipt.displayName = 'Receipt';
 /** Trigger printing of an order. Uses native window.print() so it works with
  * AirPrint, Bluetooth, USB, network and thermal printers via the OS dialog. */
 export const printOrder = () => {
-  // Small delay to let React render the print-area before printing
   setTimeout(() => window.print(), 80);
 };
 
