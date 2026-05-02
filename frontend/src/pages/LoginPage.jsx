@@ -88,7 +88,7 @@ const LoginPage = () => {
                   value={form.email}
                   onChange={handleChange}
                   className="pl-12 h-14 rounded-2xl bg-ink-800/60 border border-white/5 focus:border-primary-500 focus:bg-ink-800 text-base text-foreground placeholder:text-foreground/30"
-                  data-testid="login-email-input"
+                  data-testid="login-email-input" autoCapitalize="none" autoCorrect="off" spellCheck={false}
                 />
               </div>
             </div>
@@ -106,7 +106,7 @@ const LoginPage = () => {
                   value={form.password}
                   onChange={handleChange}
                   className="pl-12 pr-12 h-14 rounded-2xl bg-ink-800/60 border border-white/5 focus:border-primary-500 focus:bg-ink-800 text-base text-foreground placeholder:text-foreground/30"
-                  data-testid="login-password-input"
+                  data-testid="login-password-input" autoCapitalize="none" autoCorrect="off" spellCheck={false}
                 />
                 <button
                   type="button"

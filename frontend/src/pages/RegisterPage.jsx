@@ -99,6 +99,9 @@ const Field = ({ icon: Icon, label, testId, ...props }) => (
       <Icon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary-500/70" />
       <Input
         required
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
         {...props}
         className="pl-12 h-14 rounded-2xl bg-ink-800/60 border border-white/5 focus:border-primary-500 focus:bg-ink-800 text-foreground placeholder:text-foreground/30"
         data-testid={testId}
@@ -116,6 +119,10 @@ const PasswordField = ({ label, name, value, onChange, placeholder, show, setSho
         name={name}
         type={show ? 'text' : 'password'}
         required
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        autoComplete="new-password"
         placeholder={placeholder}
         value={value}
         onChange={onChange}
