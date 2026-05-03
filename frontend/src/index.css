@@ -76,14 +76,200 @@ input, textarea, [contenteditable] { -webkit-user-select: text; user-select: tex
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Aurora animated background */
+/* ===== Futuristic Cyber Background ===== */
+
+/* Deep space base gradient */
+.cyber-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(177, 78, 255, 0.15) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 240, 255, 0.12) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 138, 61, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, #040510 0%, #0A0D1F 50%, #080718 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Perspective grid floor — Tron-style */
+.cyber-grid {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 240%;
+  height: 70%;
+  transform: translateX(-50%) perspective(800px) rotateX(65deg);
+  transform-origin: center top;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.18) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: cyber-grid-move 18s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.8) 10%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.8) 10%, transparent 90%);
+}
+@keyframes cyber-grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 60px; }
+}
+
+/* Glow horizon — neon line at the grid vanishing point */
+.cyber-horizon {
+  position: absolute;
+  top: 32%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.6) 20%, rgba(177, 78, 255, 0.7) 50%, rgba(0, 240, 255, 0.6) 80%, transparent);
+  box-shadow:
+    0 0 12px rgba(0, 240, 255, 0.6),
+    0 0 40px rgba(177, 78, 255, 0.4),
+    0 -6px 32px rgba(0, 240, 255, 0.3);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
+  animation: horizon-pulse 4s ease-in-out infinite;
+}
+@keyframes horizon-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.9; }
+}
+
+/* Orbital glowing sphere (sun/moon) floating */
+.cyber-orb {
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #FF8A3D 0%, #FF3C50 40%, #B14EFF 70%, transparent 100%);
+  box-shadow:
+    0 0 80px rgba(255, 138, 61, 0.4),
+    0 0 160px rgba(177, 78, 255, 0.3),
+    inset -20px -20px 60px rgba(0, 0, 0, 0.4);
+  filter: blur(2px);
+  animation: orb-float 16s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
+}
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-30px, 20px) scale(1.08); }
+  66% { transform: translate(20px, -15px) scale(0.96); }
+}
+
+/* Secondary small orb (neon green-cyan) */
+.cyber-orb-2 {
+  position: absolute;
+  bottom: 20%;
+  left: 8%;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #00F0FF 0%, #22E5A0 60%, transparent 100%);
+  box-shadow: 0 0 60px rgba(0, 240, 255, 0.45), 0 0 120px rgba(34, 229, 160, 0.25);
+  filter: blur(1px);
+  animation: orb-float 20s ease-in-out infinite reverse;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* Floating particles (stars / embers) */
+.cyber-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+.cyber-particles::before,
+.cyber-particles::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  box-shadow:
+    120px 180px #00F0FF, 340px 60px #FFFFFF, 580px 420px #B14EFF, 820px 120px #FF8A3D,
+    1040px 320px #00F0FF, 1280px 80px #FFFFFF, 160px 580px #B14EFF, 480px 740px #00F0FF,
+    720px 640px #FF8A3D, 980px 820px #FFFFFF, 1220px 680px #00F0FF, 260px 880px #B14EFF,
+    540px 40px #FFFFFF, 880px 520px #00F0FF, 1140px 980px #FF8A3D, 80px 360px #FFFFFF,
+    380px 260px #B14EFF, 660px 860px #00F0FF, 940px 420px #FFFFFF, 1160px 560px #FF8A3D,
+    40px 720px #00F0FF, 320px 980px #B14EFF, 600px 580px #FFFFFF, 860px 200px #00F0FF,
+    1100px 780px #B14EFF, 1340px 320px #FFFFFF, 200px 140px #00F0FF, 440px 520px #FF8A3D,
+    740px 340px #FFFFFF, 1020px 680px #B14EFF, 1280px 880px #00F0FF, 220px 480px #FFFFFF;
+  animation: particles-drift 60s linear infinite;
+  border-radius: 50%;
+}
+.cyber-particles::after {
+  animation-duration: 90s;
+  animation-direction: reverse;
+  opacity: 0.6;
+  transform: translate(40px, 80px);
+}
+@keyframes particles-drift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-200px); }
+}
+
+/* Twinkling effect on stars */
+.cyber-twinkle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1.5px 1.5px at 45% 65%, rgba(0,240,255,0.9), transparent),
+    radial-gradient(1px 1px at 75% 15%, rgba(255,255,255,0.9), transparent),
+    radial-gradient(1.5px 1.5px at 85% 85%, rgba(177,78,255,0.9), transparent),
+    radial-gradient(1px 1px at 25% 75%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 55% 45%, rgba(0,240,255,0.8), transparent);
+  background-size: 100% 100%;
+  animation: twinkle 3s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Subtle scanlines (CRT effect) */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 240, 255, 0.015) 2px,
+    rgba(0, 240, 255, 0.015) 4px
+  );
+}
+
+/* Vignette */
+.cyber-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Legacy aurora kept for backwards compat */
 .aurora {
   position: absolute;
   inset: -20%;
   pointer-events: none;
   z-index: 0;
   filter: blur(60px) saturate(140%);
-  opacity: 0.55;
+  opacity: 0.35;
 }
 .aurora::before, .aurora::after {
   content: '';
