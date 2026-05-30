@@ -35,7 +35,13 @@ const SettingsPage = () => {
   const save = async () => {
     setSaving(true);
     try {
-      await businessApi.update({ name: business.name, logo: business.logo, qr_url: business.qr_url || '', qr_label: business.qr_label || '' });
+      await businessApi.update({
+        name: business.name,
+        logo: business.logo,
+        logo_size: business.logo_size || 'md',
+        qr_url: business.qr_url || '',
+        qr_label: business.qr_label || '',
+      });
       toast.success('Cambios guardados');
     } catch { toast.error('Error al guardar'); }
     finally { setSaving(false); }
@@ -79,6 +85,41 @@ const SettingsPage = () => {
                     <input type="file" accept="image/*" onChange={handleLogo} className="hidden" data-testid="logo-input" />
                   </label>
                 </div>
+
+                {business?.logo && (
+                  <div>
+                    <label className="text-sm font-semibold text-foreground">Tamaño del logo en el POS</label>
+                    <p className="text-xs text-foreground/50 mb-2">Elige cómo se verá el logo arriba del Punto de Venta</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { id: 'sm', label: 'Pequeño', size: 32 },
+                        { id: 'md', label: 'Mediano', size: 48 },
+                        { id: 'lg', label: 'Grande', size: 64 },
+                        { id: 'xl', label: 'Enorme', size: 80 },
+                      ].map(opt => {
+                        const isActive = (business?.logo_size || 'md') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setBusiness({ ...business, logo_size: opt.id })}
+                            data-testid={`logo-size-${opt.id}`}
+                            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ios-press ${
+                              isActive
+                                ? 'border-primary-500 bg-primary-500/10 text-primary-500 shadow-neon-cyan'
+                                : 'border-white/10 bg-white/5 text-foreground hover:bg-white/10'
+                            }`}
+                          >
+                            <div className="bg-ink-900 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center" style={{ width: opt.size, height: opt.size }}>
+                              <img src={business.logo} alt="" className="w-full h-full object-contain" />
+                            </div>
+                            <span className="text-xs font-bold">{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-semibold text-foreground">Nombre del restaurante</label>
                   <Input value={business?.name || ''} onChange={(e) => setBusiness({ ...business, name: e.target.value })} className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="business-name-input" />

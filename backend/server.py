@@ -121,12 +121,14 @@ class Business(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     logo: Optional[str] = None  # base64 image
-    qr_url: Optional[str] = None  # URL printed as QR on receipts (Google Reviews, IG, tip page, etc.)
-    qr_label: Optional[str] = None  # Short text shown next to the QR
+    logo_size: Optional[str] = 'md'  # sm | md | lg | xl
+    qr_url: Optional[str] = None
+    qr_label: Optional[str] = None
 
 class BusinessUpdate(BaseModel):
     name: Optional[str] = None
     logo: Optional[str] = None
+    logo_size: Optional[str] = None
     qr_url: Optional[str] = None
     qr_label: Optional[str] = None
 

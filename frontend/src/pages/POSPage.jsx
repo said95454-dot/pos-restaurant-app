@@ -136,16 +136,30 @@ const POSContent = () => {
   ];
   const itemCount = cart.reduce((s, it) => s + it.quantity, 0);
 
+  const LOGO_SIZE_MAP = { sm: 48, md: 72, lg: 100, xl: 140 };
+  const logoSize = LOGO_SIZE_MAP[business?.logo_size || 'md'];
+
   return (
     <div className="flex-1 flex h-full overflow-hidden" data-testid="pos-page">
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-4 sm:px-6 pt-4 pb-3 glass-strong border-b border-white/5 relative z-10">
+          {/* Centered logo + restaurant name */}
+          {business?.logo && (
+            <div className="flex flex-col items-center mb-3" data-testid="pos-header-logo">
+              <div
+                className="relative rounded-2xl overflow-hidden border border-primary-500/30 shadow-neon-cyan bg-ink-900"
+                style={{ width: logoSize, height: logoSize }}
+              >
+                <img src={business.logo} alt="" className="w-full h-full object-contain" />
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="min-w-0">
               <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Punto de Venta</p>
               <h1 className="font-heading text-2xl font-black text-gradient truncate" data-testid="pos-restaurant-name">
-                {restaurant?.restaurant_name}
+                {business?.name || restaurant?.restaurant_name}
               </h1>
             </div>
             <div className="relative w-full max-w-xs flex items-center gap-2">
