@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import CashierGate from '@/components/CashierGate';
 import Receipt, { printOrder } from '@/components/Receipt';
+import { playCheckout, playError, playTap } from '@/utils/sound';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -118,6 +119,7 @@ const POSContent = () => {
         cashier_name: cashier?.name || null,
       });
       toast.success(`Venta registrada: ${formatMoney(total)}`);
+      playCheckout();
       setLastOrder(order);
       setCart([]); setCustomer(''); setAmountReceived(''); setShowCheckout(false); setShowCart(false);
       if (autoPrint) printOrder();

@@ -3,10 +3,11 @@ import { businessApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Upload, X, Save, LogOut, Smartphone, QrCode, ExternalLink, Copy } from 'lucide-react';
+import { Loader2, Upload, X, Save, LogOut, Smartphone, QrCode, ExternalLink, Copy, Volume2, VolumeX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { QRCodeCanvas } from 'qrcode.react';
+import { getMuted, setMuted, playCheckout } from '@/utils/sound';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -14,6 +15,14 @@ const SettingsPage = () => {
   const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [muted, setMutedState] = useState(getMuted());
+
+  const toggleSound = () => {
+    const next = !muted;
+    setMuted(next);
+    setMutedState(next);
+    if (!next) playCheckout(); // play a sample when re-enabling
+  };
 
   const load = async () => {
     setLoading(true);
@@ -199,6 +208,34 @@ const SettingsPage = () => {
                   {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <QrCode className="h-4 w-4 mr-2" />} Guardar QR
                 </Button>
               </div>
+            </div>
+
+            {/* Sound preferences */}
+            <div className="glass rounded-3xl p-5" data-testid="sound-card">
+              <div className="flex items-start gap-3 mb-3">
+                <div className={`h-10 w-10 rounded-2xl border flex items-center justify-center flex-shrink-0 ${muted ? 'bg-ink-700 border-white/10 text-foreground/40' : 'bg-primary-500/15 border-primary-500/30 text-primary-500'}`}>
+                  {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-heading text-lg font-bold text-foreground">Sonidos</h3>
+                  <p className="text-sm text-foreground/50">Sonido "cha-ching" al cobrar y celebración al cerrar caja sin diferencias</p>
+                </div>
+                <button
+                  onClick={toggleSound}
+                  className={`relative h-7 w-12 rounded-full transition-colors flex-shrink-0 ${muted ? 'bg-ink-700' : 'bg-primary-500 shadow-neon-cyan'}`}
+                  data-testid="sound-toggle"
+                  aria-label={muted ? 'Activar sonidos' : 'Desactivar sonidos'}
+                >
+                  <span className={`absolute top-0.5 h-6 w-6 bg-white rounded-full shadow transition-transform ${muted ? 'translate-x-0.5' : 'translate-x-5'}`} />
+                </button>
+              </div>
+              <button
+                onClick={() => { if (muted) { toast.error('Activa los sonidos primero'); return; } playCheckout(); }}
+                className="text-xs font-bold uppercase tracking-wider text-primary-500 hover:text-glow-cyan"
+                data-testid="test-sound-btn"
+              >
+                ▶ Probar sonido de cobro
+              </button>
             </div>
 
             <div className="glass rounded-3xl p-5">

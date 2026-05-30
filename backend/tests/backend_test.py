@@ -9,8 +9,8 @@ import requests
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://resto-pos-hub-11.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
-DEMO_EMAIL = "demo@restaurant.com"
-DEMO_PASSWORD = "demo1234"
+DEMO_EMAIL = "said95454@gmail.com"
+DEMO_PASSWORD = "pos12345"
 
 
 @pytest.fixture(scope="session")
@@ -139,6 +139,27 @@ class TestBusiness:
         r = s.put(f"{API}/business", headers=auth_headers,
                   json={"qr_url": "", "qr_label": ""})
         assert r.status_code == 200
+
+    # ===== logo_size (iteration_7) =====
+    def test_business_has_logo_size_field(self, s, auth_headers):
+        r = s.get(f"{API}/business", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert "logo_size" in data
+        # default is 'md'
+        assert data["logo_size"] in (None, "sm", "md", "lg", "xl")
+
+    def test_update_logo_size_persists(self, s, auth_headers):
+        for size in ("sm", "md", "lg", "xl"):
+            r = s.put(f"{API}/business", headers=auth_headers, json={"logo_size": size})
+            assert r.status_code == 200, r.text
+            assert r.json()["logo_size"] == size
+            # GET to verify persistence
+            r2 = s.get(f"{API}/business", headers=auth_headers)
+            assert r2.json()["logo_size"] == size
+        # restore default
+        s.put(f"{API}/business", headers=auth_headers, json={"logo_size": "md"})
+
 
 
 # ===== Products =====

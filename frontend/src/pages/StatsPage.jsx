@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { statsApi } from '@/utils/api';
 import { Input } from '@/components/ui/input';
-import { Loader2, TrendingUp, Banknote, CreditCard, ArrowRightLeft, Award, Calendar } from 'lucide-react';
+import { Loader2, TrendingUp, Banknote, CreditCard, ArrowRightLeft, Award, Calendar, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import AnimatedNumber from '@/components/AnimatedNumber';
+import { downloadCsv } from '@/utils/csv';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -31,6 +32,20 @@ const StatsPage = () => {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [date, rangeStart, rangeEnd]);
+
+  const exportRangeCsv = () => {
+    if (!rangeData.length) { toast.error('Sin datos para exportar'); return; }
+    const rows = [...rangeData].sort((a, b) => a.date.localeCompare(b.date)).map(d => ({
+      fecha: d.date,
+      ordenes: d.total_orders,
+      ventas_totales: d.total_sales?.toFixed(2),
+      efectivo: d.cash_sales?.toFixed(2),
+      tarjeta: d.card_sales?.toFixed(2),
+      transferencia: d.transfer_sales?.toFixed(2),
+    }));
+    downloadCsv(`reporte_${rangeStart}_${rangeEnd}.csv`, rows);
+    toast.success('CSV descargado');
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 md:pb-6" data-testid="stats-page">
@@ -102,10 +117,17 @@ const StatsPage = () => {
             <div className="glass rounded-3xl p-5">
               <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                 <h3 className="font-heading text-lg font-bold text-foreground">Ventas por día</h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Input type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} className="h-10 rounded-2xl bg-ink-800 border-white/10 w-40 text-foreground" data-testid="range-start" />
                   <span className="text-foreground/40 text-sm">a</span>
                   <Input type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} className="h-10 rounded-2xl bg-ink-800 border-white/10 w-40 text-foreground" data-testid="range-end" />
+                  <button
+                    onClick={exportRangeCsv}
+                    className="h-10 px-4 rounded-2xl bg-amber/15 border border-amber/30 text-amber hover:bg-amber/25 inline-flex items-center gap-2 font-bold text-sm"
+                    data-testid="export-range-csv-btn"
+                  >
+                    <Download className="h-4 w-4" /> CSV
+                  </button>
                 </div>
               </div>
               {rangeData.length === 0 ? (

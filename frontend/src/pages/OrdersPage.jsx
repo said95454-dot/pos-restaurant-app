@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ordersApi, businessApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
-import { Loader2, Receipt as ReceiptIcon, Banknote, CreditCard, ArrowRightLeft, User, Calendar, Printer } from 'lucide-react';
+import { Loader2, Receipt as ReceiptIcon, Banknote, CreditCard, ArrowRightLeft, User, Calendar, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import ReceiptComp, { printOrder } from '@/components/Receipt';
+import { downloadCsv } from '@/utils/csv';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -37,6 +38,23 @@ const OrdersPage = () => {
     setTimeout(() => printOrder(), 50);
   };
 
+  const exportCsv = () => {
+    if (orders.length === 0) { toast.error('Sin órdenes para exportar'); return; }
+    const rows = orders.map(o => ({
+      folio: o.id?.slice(0, 8).toUpperCase(),
+      fecha: new Date(o.created_at).toLocaleString('es-MX'),
+      cliente: o.customer_name,
+      cajero: o.cashier_name || '',
+      items: o.items?.map(it => `${it.quantity}x ${it.product_name}`).join(' | '),
+      total: o.total?.toFixed(2),
+      metodo_pago: PM_LABELS[o.payment_method] || o.payment_method,
+      recibido: o.amount_received?.toFixed(2) || '',
+      cambio: o.change?.toFixed(2) || '',
+    }));
+    downloadCsv(`ordenes_${date}.csv`, rows);
+    toast.success('CSV descargado');
+  };
+
   const total = orders.reduce((s, o) => s + (o.total || 0), 0);
 
   return (
@@ -47,15 +65,25 @@ const OrdersPage = () => {
             <p className="text-xs font-semibold tracking-wider text-foreground/50 uppercase">Historial</p>
             <h1 className="font-heading text-3xl font-bold text-foreground">Órdenes</h1>
           </div>
-          <div className="flex items-center gap-2 bg-white rounded-2xl border border-white/5 px-4 py-2">
-            <Calendar className="h-4 w-4 text-foreground/50" />
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="border-0 h-9 p-0 focus-visible:ring-0 w-36"
-              data-testid="orders-date-filter"
-            />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCsv}
+              className="h-11 px-4 rounded-2xl bg-amber/15 border border-amber/30 text-amber hover:bg-amber/25 inline-flex items-center gap-2 font-bold text-sm"
+              data-testid="export-orders-csv-btn"
+              title="Exportar CSV"
+            >
+              <Download className="h-4 w-4" /> CSV
+            </button>
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-2">
+              <Calendar className="h-4 w-4 text-foreground/50" />
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="border-0 bg-transparent h-9 p-0 focus-visible:ring-0 w-36 text-foreground"
+                data-testid="orders-date-filter"
+              />
+            </div>
           </div>
         </div>
 

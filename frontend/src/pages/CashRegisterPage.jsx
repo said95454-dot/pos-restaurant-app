@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Loader2, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
+import { playSuccess } from '@/utils/sound';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -173,6 +175,20 @@ const CloseModal = ({ open, onClose, stats, cashier, restaurant, onDone }) => {
         closed_by: cashier?.name || restaurant?.restaurant_name || 'Admin',
       });
       toast.success('Corte de caja realizado');
+      // Celebrate if zero difference 🎉
+      if (Math.abs(diff) < 0.01) {
+        playSuccess();
+        const burst = (originX) => confetti({
+          particleCount: 80,
+          spread: 70,
+          startVelocity: 45,
+          origin: { x: originX, y: 0.7 },
+          colors: ['#00F0FF', '#B14EFF', '#FF8A3D', '#FFCC3D', '#22E5A0'],
+          scalar: 1.1,
+        });
+        burst(0.2); burst(0.8);
+        setTimeout(() => burst(0.5), 250);
+      }
       onDone();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error al cerrar caja');
