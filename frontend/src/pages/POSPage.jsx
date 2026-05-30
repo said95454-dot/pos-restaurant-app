@@ -26,7 +26,7 @@ const POSContent = () => {
   const [products, setProducts] = useState([]);
   const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('todos');
+  const [activeCategory, setActiveCategory] = useState('comida');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -53,7 +53,7 @@ const POSContent = () => {
   useEffect(() => { localStorage.setItem('auto_print', String(autoPrint)); }, [autoPrint]);
 
   const filtered = useMemo(() => products.filter(p => {
-    const catMatch = activeCategory === 'todos' || p.category === activeCategory;
+    const catMatch = p.category === activeCategory;
     const sMatch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     return catMatch && sMatch;
   }), [products, activeCategory, search]);
@@ -131,7 +131,6 @@ const POSContent = () => {
   };
 
   const categories = [
-    { id: 'todos', label: 'Todos', icon: ShoppingBag },
     { id: 'comida', label: 'Comida', icon: Utensils },
     { id: 'bebida', label: 'Bebida', icon: Coffee },
   ];
