@@ -13,6 +13,7 @@ const ProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('comida');
   const [editing, setEditing] = useState(null); // null=closed, {} = new, {...} = edit
   const [saving, setSaving] = useState(false);
 
@@ -24,7 +25,16 @@ const ProductsPage = () => {
   };
   useEffect(() => { load(); }, []);
 
-  const filtered = products.filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()));
+  const countByCat = {
+    comida: products.filter(p => p.category === 'comida').length,
+    bebida: products.filter(p => p.category === 'bebida').length,
+  };
+
+  const filtered = products.filter(p => {
+    const catMatch = p.category === activeCategory;
+    const sMatch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    return catMatch && sMatch;
+  });
 
   const handleSave = async (form) => {
     setSaving(true);
@@ -70,11 +80,11 @@ const ProductsPage = () => {
             <h1 className="font-heading text-3xl font-bold text-foreground">Productos</h1>
           </div>
           <Button
-            onClick={() => setEditing({ name: '', price: '', category: 'comida', image: '', custom_options: [] })}
+            onClick={() => setEditing({ name: '', price: '', category: activeCategory, image: '', custom_options: [] })}
             className="h-12 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan px-5 ios-press"
             data-testid="add-product-button"
           >
-            <Plus className="h-5 w-5 mr-1" /> Nuevo producto
+            <Plus className="h-5 w-5 mr-1" /> Nuevo {activeCategory === 'bebida' ? 'bebida' : 'producto'}
           </Button>
         </div>
 
@@ -89,15 +99,47 @@ const ProductsPage = () => {
           />
         </div>
 
+        {/* Category tabs */}
+        <div className="flex gap-2 mb-5">
+          {[
+            { id: 'comida', label: 'Comida', icon: Utensils },
+            { id: 'bebida', label: 'Bebida', icon: Coffee },
+          ].map(c => {
+            const Icon = c.icon;
+            const isActive = activeCategory === c.id;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setActiveCategory(c.id)}
+                data-testid={`products-category-${c.id}`}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ios-press ${
+                  isActive
+                    ? 'bg-primary-500 text-ink-950 shadow-neon-cyan'
+                    : 'bg-white/5 text-foreground/60 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2.2} /> {c.label}
+                <span className={`ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold ${
+                  isActive ? 'bg-ink-950/40 text-ink-950' : 'bg-white/10 text-foreground/60'
+                }`}>{countByCat[c.id]}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary-500" /></div>
         ) : filtered.length === 0 ? (
           <div className="glass rounded-3xl p-12 text-center" data-testid="products-empty">
-            <Utensils className="h-12 w-12 text-foreground/30 mx-auto mb-3" />
-            <h3 className="font-heading text-xl font-bold text-foreground">Sin productos aún</h3>
-            <p className="text-foreground/50 mb-4">Crea tu primer producto para empezar a vender</p>
+            {activeCategory === 'bebida' ? <Coffee className="h-12 w-12 text-foreground/30 mx-auto mb-3" /> : <Utensils className="h-12 w-12 text-foreground/30 mx-auto mb-3" />}
+            <h3 className="font-heading text-xl font-bold text-foreground">
+              {search ? 'Sin resultados' : `Sin ${activeCategory === 'bebida' ? 'bebidas' : 'comidas'} aún`}
+            </h3>
+            <p className="text-foreground/50 mb-4">
+              {search ? 'Intenta con otra búsqueda' : `Crea tu primera ${activeCategory === 'bebida' ? 'bebida' : 'comida'} para empezar a vender`}
+            </p>
             <Button
-              onClick={() => setEditing({ name: '', price: '', category: 'comida', image: '', custom_options: [] })}
+              onClick={() => setEditing({ name: '', price: '', category: activeCategory, image: '', custom_options: [] })}
               className="h-12 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan px-5"
             >
               <Plus className="h-4 w-4 mr-1" /> Crear producto
