@@ -7,7 +7,7 @@ import os
 import logging
 import asyncio
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, validator
 from typing import List, Optional, Dict, Any
 import uuid
 import secrets
@@ -124,6 +124,7 @@ class Business(BaseModel):
     logo_size: Optional[str] = 'md'  # sm | md | lg | xl
     qr_url: Optional[str] = None
     qr_label: Optional[str] = None
+    default_tip_percent: float = 0.0  # propina sugerida global
 
 class BusinessUpdate(BaseModel):
     name: Optional[str] = None
@@ -131,6 +132,7 @@ class BusinessUpdate(BaseModel):
     logo_size: Optional[str] = None
     qr_url: Optional[str] = None
     qr_label: Optional[str] = None
+    default_tip_percent: Optional[float] = None
 
 # Product Models
 class Product(BaseModel):
@@ -192,6 +194,13 @@ class OrderCreate(BaseModel):
     change: Optional[float] = None  # Cambio dado (para efectivo)
     cashier_id: Optional[str] = None
     cashier_name: Optional[str] = None
+
+    @validator('subtotal', always=True)
+    def _default_subtotal(cls, v, values):
+        if v is None:
+            # legacy clients without subtotal: derive from total - tip
+            return float(values.get('total', 0)) - float(values.get('tip', 0) or 0)
+        return v
 
 # User Models (Manager)
 class User(BaseModel):
@@ -556,7 +565,11 @@ async def get_order(order_id: str, restaurant: dict = Depends(get_current_restau
 @api_router.post("/orders", response_model=Order)
 async def create_order(order: OrderCreate, restaurant: dict = Depends(get_current_restaurant)):
     restaurant_id = restaurant["id"]
-    new_order = Order(**order.dict())
+    order_data = order.dict()
+    # Fallback: legacy clients (offline-queued before tips feature) may omit subtotal — derive it
+    if order_data.get("subtotal") in (None, 0, 0.0):
+        order_data["subtotal"] = float(order_data.get("total", 0)) - float(order_data.get("tip", 0) or 0)
+    new_order = Order(**order_data)
     order_dict = new_order.dict()
     order_dict["restaurant_id"] = restaurant_id
     await db.orders.insert_one(order_dict)
@@ -814,6 +827,10 @@ async def update_cashier(cashier_id: str, update: CashierUpdate, restaurant: dic
         update_data["password_hash"] = pwd_context.hash(update.password)
     if update.active is not None:
         update_data["active"] = update.active
+    # default_tip_percent supports clearing to null (use global) via explicit null
+    payload_unset = update.model_dump(exclude_unset=True) if hasattr(update, "model_dump") else update.dict(exclude_unset=True)
+    if "default_tip_percent" in payload_unset:
+        update_data["default_tip_percent"] = payload_unset["default_tip_percent"]
     
     if update_data:
         await db.cashiers.update_one({"id": cashier_id, "restaurant_id": restaurant_id}, {"$set": update_data})

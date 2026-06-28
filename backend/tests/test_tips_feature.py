@@ -114,16 +114,25 @@ class TestCashierTip:
             f"PUT did not change default_tip_percent. Still: {match.get('default_tip_percent')}"
         )
 
-        # Update to null (clear)
+        # Update other fields untouched: change name only -> tip stays 10
+        r = auth.put(f"{BASE_URL}/api/cashiers/{cid}",
+                     json={"name": match["name"] + "_x"}, timeout=10)
+        assert r.status_code == 200
+        lst = auth.get(f"{BASE_URL}/api/cashiers", timeout=10).json()
+        match2 = [c for c in lst if c["id"] == cid][0]
+        assert match2["default_tip_percent"] == 10, (
+            f"Updating name should NOT clobber default_tip_percent. Got: {match2.get('default_tip_percent')}"
+        )
+
+        # Update to null (clear) — explicit null support via exclude_unset
         r = auth.put(f"{BASE_URL}/api/cashiers/{cid}",
                      json={"default_tip_percent": None}, timeout=10)
         assert r.status_code == 200
-        # NOTE: Currently null might not be updated due to filter logic; verifying behaviour.
         lst = auth.get(f"{BASE_URL}/api/cashiers", timeout=10).json()
-        match = [c for c in lst if c["id"] == cid][0]
-        # Document but don't fail on null (semantics may be "leave as-is on null")
-        # Just record observed value
-        print(f"After PUT null: default_tip_percent = {match.get('default_tip_percent')}")
+        match3 = [c for c in lst if c["id"] == cid][0]
+        assert match3.get("default_tip_percent") is None, (
+            f"PUT null should clear default_tip_percent. Got: {match3.get('default_tip_percent')}"
+        )
 
     def test_cleanup_cashier(self, auth):
         if TestCashierTip.created_id:
@@ -211,6 +220,42 @@ class TestOrderTipAndStats:
         data = r.json()
         assert data["tip"] == 0.0
         assert data["total"] == 100.0
+
+    def test_legacy_order_without_subtotal_auto_derived(self, auth):
+        """FIX #3: POST without subtotal must auto-derive subtotal=total-tip and return 200."""
+        payload = {
+            "customer_name": "TEST_LegacyNoSubtotal",
+            "items": [self._item(1)],
+            "total": 110.0,
+            "tip": 10.0,
+            "payment_method": "card",
+            # subtotal intentionally omitted (legacy / offline-queued payload)
+        }
+        r = auth.post(f"{BASE_URL}/api/orders", json=payload, timeout=10)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["tip"] == 10.0
+        assert data["total"] == 110.0
+        assert data["subtotal"] == 100.0, (
+            f"subtotal should be auto-derived as total-tip=100.0. Got: {data.get('subtotal')}"
+        )
+
+    def test_order_with_subtotal_preserved_verbatim(self, auth):
+        """When subtotal is supplied, it must NOT be overwritten by auto-derive."""
+        payload = {
+            "customer_name": "TEST_SubtotalProvided",
+            "items": [self._item(2)],
+            "subtotal": 200.0,  # explicit
+            "tip": 30.0,
+            "total": 230.0,
+            "payment_method": "cash",
+        }
+        r = auth.post(f"{BASE_URL}/api/orders", json=payload, timeout=10)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["subtotal"] == 200.0
+        assert data["tip"] == 30.0
+        assert data["total"] == 230.0
 
     def test_cleanup_orders(self, auth):
         # Orders are persistent; we leave them for audit. Tagged with TEST_ prefix on customer.

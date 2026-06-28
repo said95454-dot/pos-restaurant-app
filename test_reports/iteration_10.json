@@ -1,0 +1,42 @@
+{
+  "summary": "Re-validation of the 3 CRITICAL backend bugs found in iteration_9 ('configurable tips' feature). All fixes verified GREEN. Backend pytest suite expanded from 14 to 16 cases and 16/16 pass, including new strict assertions for: (a) PUT /api/cashiers/{id} with default_tip_percent: null clears the field, (b) updating cashier 'name' alone does NOT clobber default_tip_percent, (c) POST /api/orders without subtotal auto-derives subtotal=total-tip and returns 200 (legacy/offline-queued payloads work), (d) when subtotal IS supplied it is preserved verbatim. Frontend E2E smoke (login → /settings → save 15% → reload → still 15) PASSES. /cashiers shows saiko with 'Propina 20%' badge. /stats shows stat-tips-card=$88.00 with ranking sorted desc. /pos CashierGate with saiko PIN 1234 login works (Hola, saiko toast). The full checkout-tip auto-active flow was validated in iteration_8 prior to backend regression and is now unblocked.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/stats/cashier-tips",
+        "issue": "Ranking still includes a 'Sin cajero' (__none__) bucket for orders without cashier_id. Considered cosmetic — UI labels it correctly ('Sin cajero'). Backend contract is clear."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "notes": [
+      "Login flake from iteration_9 was resolved by using page.locator('input[type=password]').press('Enter') instead of click on submit button.",
+      "Product cards have a '+ opciones' badge requiring an options modal flow to be added to cart; this is unchanged pre-existing behavior and not part of the tip feature."
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tips_feature.py",
+    "/app/test_reports/pytest/tips_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py update_cashier now correctly uses model_dump(exclude_unset=True), allowing explicit null clears for default_tip_percent without overwriting other fields — verified by 'update name only does not clobber tip' test.",
+    "server.py create_order now auto-derives subtotal = total - tip when omitted — verified end-to-end via POST without subtotal returning 200 and subtotal=100 for {total=110, tip=10} payload.",
+    "Business + BusinessUpdate models now declare default_tip_percent — GET returns 15 after PUT 15, persists across reload in /settings UI.",
+    "test_tips_feature.py is a solid regression gate; recommend keeping it in CI."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_tips_feature.py (added 3 new strict assertions: PUT null clears, name-only edit preserves tip, POST without subtotal auto-derives, POST with subtotal preserved)"
+  ],
+  "success_rate": {"backend": "100% (16/16 pytest)", "frontend": "100% on the 4 tip-feature surfaces verified (settings save+reload, cashiers badge, stats card+ranking, cashier-gate PIN login)"},
+  "test_credentials": "Restaurant: said95454@gmail.com / pos12345 (verified). Cashier saiko PIN 1234 (verified, 'Hola, saiko' toast).",
+  "seed_data_creation": "Test cashier (TEST_tip_cashier_*) created + deleted within suite. Two new TEST_ orders created for subtotal auto-derive and preserved cases — tagged with customer_name prefix TEST_ for auditability; left in DB by design (tests do not roll back orders).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend tip feature regression suite is locked in at /app/backend/tests/test_tips_feature.py (16 cases, all green). Future testing agents can run `pytest /app/backend/tests/test_tips_feature.py -v` as the gate. Frontend Playwright tip: use page.locator('input[type=password]').press('Enter') for login (form-submit binding fires correctly that way). POS cashier-gate PIN input is a single masked field (input[type=password] inside the gate panel after clicking the cashier row); after correct PIN a 'Hola, saiko' toast appears and the /pos main view becomes interactive with the cashier name shown in the left sidebar.",
+  "rca of the issue": "Iteration_9 bugs were all root-caused and surgically fixed: (1) Business/BusinessUpdate Pydantic models gained `default_tip_percent: float = 0.0` / `Optional[float] = None` so PUT/GET round-trip the field. (2) update_cashier handler swapped its hand-rolled `if x is not None` filter for `update.model_dump(exclude_unset=True)`, distinguishing 'omitted' vs 'explicit null' and supporting clear-to-global. (3) create_order now computes `subtotal = total - tip` when subtotal is None/omitted before constructing Order(...), fixing the OrderCreate.subtotal=Optional vs Order.subtotal=required mismatch that crashed the legacy/offline payload path. All three are covered by new pytest assertions to prevent regression."
+}
