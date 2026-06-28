@@ -73,6 +73,18 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
+### Implementado en v2.5 (Feb 2026)
+- ✅ **Sincronización en tiempo real (WebSockets)** para múltiples iPads:
+  - Backend: endpoint `@app.websocket('/api/ws?token=<JWT>')` con `RealtimeManager` multi-tenant
+  - Broadcasts: `order.created`, `product.{created,updated,deleted}`, `cashier.{created,updated,deleted}`, `cash-register.closed`, `presence`
+  - Tenancy estricta — cada restaurante recibe solo sus eventos
+  - Frontend: hook `useRealtime` con WS compartido (refcount), reconexión exponencial (cap 30s), ping cada 25s
+  - `RealtimeIndicator` en sidebar (data-testid `realtime-indicator`, `realtime-online`, `realtime-presence-count`) muestra "En vivo" + contador de iPads conectados
+  - Toast "Nueva orden de X" cuando otro iPad cobra (auto-skip self via `cashier_name`)
+  - OrdersPage, ProductsPage, POSPage, StatsPage refrescan automáticamente vía `onRealtime()`
+  - Cobertura pytest: `/app/backend/tests/test_realtime_ws.py` (7/7 green)
+  - Auth gating: token JWT inválido → close 4401
+
 ### Implementado en v2.4 (Feb 2026)
 - ✅ **Propinas configurables por cajero**:
   - Campo global `default_tip_percent` en Settings (data-testid `tips-config-card`, presets 0/10/15/20%)
