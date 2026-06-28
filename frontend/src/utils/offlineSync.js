@@ -24,18 +24,21 @@ export const syncPendingOrders = async () => {
           timeout: 15000,
         });
         await removePendingOrder(item.localId);
+        try { window.dispatchEvent(new Event('pos-queue-updated')); } catch { /* noop */ }
         synced += 1;
       } catch (e) {
         // Auth/validation problems: drop so we don't loop forever
         const status = e.response?.status;
         if (status && status >= 400 && status < 500 && status !== 408 && status !== 429) {
           await removePendingOrder(item.localId);
+          try { window.dispatchEvent(new Event('pos-queue-updated')); } catch { /* noop */ }
         }
         failed += 1;
       }
     }
   } finally {
     syncing = false;
+    try { window.dispatchEvent(new Event('pos-queue-updated')); } catch { /* noop */ }
   }
   return { synced, failed };
 };

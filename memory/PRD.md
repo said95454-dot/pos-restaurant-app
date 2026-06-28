@@ -73,21 +73,24 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
-### P0
-- Configurar `RESEND_API_KEY` para emails reales
+### Implementado en v2.3 (Feb 2026)
+- ✅ **Modo Offline (Fase 2-A)**:
+  - Service Worker (`/sw.js`) cachea el app shell — la app carga sin internet
+  - Cola IndexedDB (`offlineQueue.js`) — las ventas se guardan localmente si no hay red
+  - Auto-sincronización (`offlineSync.js`) al recuperar conexión + cada 30s
+  - Indicador visual `OnlineStatusIndicator` con badge "En línea / Sin conexión" y contador de pendientes (data-testid `status-online`, `status-offline`, `sync-pending-button`)
+  - POSPage detecta `navigator.onLine` y encola si offline o ante error de red
+  - Evento `pos-queue-updated` propagado a todas las instancias del indicador
 
-### P1
+### P1 (siguiente)
+- Sincronización en tiempo real (WebSockets) para múltiples iPads simultáneos
+- Modo "Pantalla del cliente" (segunda pantalla mostrando el pedido)
+- Precachear bundles JS/CSS hasheados en SW (cold-offline boot 100% seguro)
 - Refactor de POSPage (>500 líneas, extraer CartContent, ProductCard a archivos)
-- Render condicional de Receipt (solo durante impresión, no permanente en DOM)
-- Scope de `auto_print` por restaurant_id (multi-tenant safety)
-- Sonido "cha-ching" al cobrar
-- Web Bluetooth API directo para impresoras térmicas sin pasar por OS
 
 ### P2
 - App nativa Expo
-- Service Worker offline
-- Pantalla del cliente (modo presentación)
-- Reportes CSV/PDF
+- Reportes CSV/PDF avanzados
 
 ## Arquitectura
 - Backend FastAPI multi-tenant (datos aislados por `restaurant_id`)

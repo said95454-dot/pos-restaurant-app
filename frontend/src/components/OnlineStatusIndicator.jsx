@@ -18,8 +18,10 @@ const OnlineStatusIndicator = () => {
     if (!navigator.onLine) return;
     setSyncing(true);
     try {
-      const { synced, failed } = await syncPendingOrders();
-      if (synced > 0) toast.success(`${synced} orden(es) sincronizada(s)`, { id: 'sync-ok' });
+      const result = await syncPendingOrders();
+      const { synced = 0, failed = 0, skipped = false } = result || {};
+      if (skipped) return; // another indicator instance is handling it
+      if (synced > 0) toast.success(`${synced} orden(es) sincronizada(s)`, { id: 'sync-ok', duration: 6000 });
       if (failed > 0 && !silent) toast.error(`${failed} orden(es) no se pudieron sincronizar`);
     } finally {
       setSyncing(false);
