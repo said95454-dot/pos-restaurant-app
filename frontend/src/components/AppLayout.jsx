@@ -5,6 +5,7 @@ import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings,
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import Aurora from '@/components/Aurora';
+import OnlineStatusIndicator from '@/components/OnlineStatusIndicator';
 
 const NAV = [
   { to: '/pos', label: 'Vender', icon: ShoppingCart, testId: 'nav-pos' },
@@ -55,6 +56,9 @@ const AppLayout = () => {
               <span className="text-xs font-bold text-primary-500">Cajero: {cashier.name}</span>
             </motion.div>
           )}
+          <div className="mt-3">
+            <OnlineStatusIndicator />
+          </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -128,6 +132,11 @@ const AppLayout = () => {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Floating status indicator (mobile) */}
+      <div className="md:hidden fixed top-2 right-2 z-30" data-testid="mobile-status-wrap">
+        <OnlineStatusIndicator />
+      </div>
 
       {/* Bottom Tab Bar (mobile) */}
       <nav className="md:hidden glass-strong border-t border-white/5 safe-bottom relative z-20" data-testid="mobile-bottom-nav">

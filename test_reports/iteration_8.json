@@ -1,0 +1,49 @@
+{
+  "summary": "Phase 2 - Option A (Offline Mode) end-to-end testing. Service Worker registers (HTTP 200, controller live), OnlineStatusIndicator transitions En línea ↔ Sin conexión via Playwright context.set_offline(), checkout while offline enqueues the order in IndexedDB ('pos-offline'/pending-orders), pending counter shows '1 pendiente', and on reconnection the queue auto-syncs to /api/orders (IDB pending→0, order visible in /orders /api/orders persisted). Backend POST /api/orders curl regression passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "OnlineStatusIndicator (sidebar instance)",
+        "issue": "After successful auto-sync the badge still displayed '1 pendiente' even though IndexedDB pending=0 and the order was actually persisted on the backend. Two indicator instances are mounted (sidebar + mobile floating wrapper) and the module-level `syncing` flag in offlineSync.js causes the second instance to early-return `{skipped:true}` and refresh `pending` BEFORE the first instance finishes, so the stale value sticks. Workaround: dispatch a `pos-queue-updated` event from offlineSync at the end of syncPendingOrders() (or after each removePendingOrder), so all mounted indicators refresh.",
+        "selector": "[data-testid='sync-pending-button']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "OnlineStatusIndicator",
+        "issue": "Success toast '1 orden(es) sincronizada(s)' was not detected by Playwright after 8s. Sonner toasts auto-dismiss in ~4s and only the indicator that actually performed the sync calls toast.success — the other instance gets `skipped:true` and shows no toast. Real sync did succeed (IDB cleared + backend has the order). Recommend extending toast duration to ~6-8s or moving the success toast outside the runSync race.",
+        "selector": "n/a (sonner toast)",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix stale 'X pendiente' badge after auto-sync: dispatch window event 'pos-queue-updated' inside syncPendingOrders (after each removePendingOrder OR at the end) so every mounted OnlineStatusIndicator re-reads pendingCount().",
+    "Consider raising toast.success duration for 'sincronizada' to ~6s, or call the success toast outside the syncing guard so it always fires once even when multiple indicators are mounted.",
+    "Persisted reset: cashier 'saiko' PIN was reset to 1234 via PUT /api/cashiers/{id} during this test (it had drifted again). Consider seeding/migrating PIN=1234 idempotently on app start so the demo flow keeps working."
+  ],
+  "critical_code_review_comments": [
+    "offlineSync.js uses a module-scoped `syncing` boolean which serializes sync calls but causes the second OnlineStatusIndicator to silently skip and over-write its pending state with stale data — should broadcast a 'pos-queue-updated' event after the run.",
+    "POSPage.handleCheckout correctly branches on navigator.onLine AND falls back to enqueueOrder() on a network error post-online-check — defensive and correct.",
+    "sw.js correctly avoids caching /api/* and POSTs, network-first for navigation, cache-first for static assets — sound design. SHELL list however does NOT precache the hashed JS/CSS bundles (built into /static/js/main.*.js); the first load opportunistically caches them via the fetch handler, but a true cold-offline boot may fail until those bundles are visited once online.",
+    "offlineQueue.js uses keyPath 'localId' on object store; enqueueOrder generates a sufficiently unique localId. Good.",
+    "Backend POST /api/orders payload accepted with the offline-flushed body (verified via curl + via flushed-on-reconnect path)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (POST /api/orders regression OK)", "frontend": "~90% (offline enqueue, online auto-sync, backend persistence all green; minor stale-badge + missed success-toast race noted)"},
+  "test_credentials": "Restaurant: said95454@gmail.com / pos12345 (works). Cashier 'saiko' PIN had drifted from 1234 and returned 401 again — testing agent reset it via PUT /api/cashiers/{id} {pin:'1234'} before E2E. Suggest seeding it permanently or persisting it in test_credentials.md migration script.",
+  "seed_data_creation": "Reset cashier 'saiko' (3bb32ee8-b663-4259-8498-8a946446cbfd) PIN back to 1234. Created two orders: TEST_curl_offline (via curl, $13.00) and TEST_offline_E2E (via offline queue + auto-sync, $13.00). Both visible in /api/orders.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Offline Mode (Phase 2-A) is functionally complete: SW registers, indicator toggles, IndexedDB queue enqueues offline orders, auto-sync on 'online' event flushes to backend, /orders page lists the synced order. Two minor cosmetic issues remain in OnlineStatusIndicator due to two-instance race (sidebar + mobile). Backend POST /api/orders unchanged and regression-OK. Saiko cashier PIN keeps drifting from 1234 — verify before any cashier-gated test.",
+  "rca of the issue": "Stale '1 pendiente' badge after sync: two OnlineStatusIndicator React instances are mounted (AppLayout sidebar + mobile floating wrapper). Both fire runSync on the 'online' window event. offlineSync.syncPendingOrders has a module-level `syncing` guard that makes the second concurrent call early-return {skipped:true,synced:0,failed:0}. The second instance's `finally → refreshPending()` reads IDB BEFORE the first instance finishes removing items, so the stale `pending=1` is committed to the second instance's React state and never refreshed (no event is dispatched at the end of the real sync). Fix: dispatch `window.dispatchEvent(new Event('pos-queue-updated'))` inside syncPendingOrders after each `removePendingOrder` (or once at the end). This will trigger refreshPending in every mounted indicator."
+}

@@ -11,6 +11,7 @@ import AnimatedNumber from '@/components/AnimatedNumber';
 import CashierGate from '@/components/CashierGate';
 import Receipt, { printOrder } from '@/components/Receipt';
 import { playCheckout, playError, playTap } from '@/utils/sound';
+import { enqueueOrder } from '@/utils/offlineQueue';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -100,31 +101,70 @@ const POSContent = () => {
       if ((parseFloat(amountReceived) || 0) < total) { toast.error('El monto recibido es menor al total'); return; }
     }
     setSubmitting(true);
-    try {
-      const order = await ordersApi.create({
-        customer_name: customer.trim(),
-        items: cart.map(it => ({
-          product_id: it.product.id,
-          product_name: it.product.name,
-          product_price: it.product.price,
-          quantity: it.quantity,
-          selected_options: it.selected_options || [],
-          subtotal: it.subtotal,
-        })),
-        total,
-        payment_method: paymentMethod,
-        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) : null,
-        change: paymentMethod === 'cash' ? change : null,
-        cashier_id: cashier?.id || null,
-        cashier_name: cashier?.name || null,
-      });
-      toast.success(`Venta registrada: ${formatMoney(total)}`);
+    const orderPayload = {
+      customer_name: customer.trim(),
+      items: cart.map(it => ({
+        product_id: it.product.id,
+        product_name: it.product.name,
+        product_price: it.product.price,
+        quantity: it.quantity,
+        selected_options: it.selected_options || [],
+        subtotal: it.subtotal,
+      })),
+      total,
+      payment_method: paymentMethod,
+      amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) : null,
+      change: paymentMethod === 'cash' ? change : null,
+      cashier_id: cashier?.id || null,
+      cashier_name: cashier?.name || null,
+    };
+
+    const finishLocal = (orderForReceipt, message) => {
+      toast.success(message);
       playCheckout();
-      setLastOrder(order);
+      setLastOrder(orderForReceipt);
       setCart([]); setCustomer(''); setAmountReceived(''); setShowCheckout(false); setShowCart(false);
       if (autoPrint) printOrder();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error al registrar la venta'); }
-    finally { setSubmitting(false); }
+    };
+
+    try {
+      if (!navigator.onLine) {
+        const queued = await enqueueOrder(orderPayload, localStorage.getItem('token'));
+        window.dispatchEvent(new Event('pos-queue-updated'));
+        const offlineOrder = {
+          ...orderPayload,
+          id: queued.localId,
+          status: 'pending-sync',
+          created_at: queued.createdAt,
+          offline: true,
+        };
+        finishLocal(offlineOrder, `Venta guardada offline (${formatMoney(total)})`);
+      } else {
+        const order = await ordersApi.create(orderPayload);
+        finishLocal(order, `Venta registrada: ${formatMoney(total)}`);
+      }
+    } catch (e) {
+      // Network error after passing the online check → queue locally
+      const isNetwork = !e.response;
+      if (isNetwork) {
+        try {
+          const queued = await enqueueOrder(orderPayload, localStorage.getItem('token'));
+          window.dispatchEvent(new Event('pos-queue-updated'));
+          const offlineOrder = {
+            ...orderPayload,
+            id: queued.localId,
+            status: 'pending-sync',
+            created_at: queued.createdAt,
+            offline: true,
+          };
+          finishLocal(offlineOrder, `Venta guardada offline (${formatMoney(total)})`);
+        } catch (qe) {
+          toast.error('No se pudo registrar ni encolar la venta');
+        }
+      } else {
+        toast.error(e.response?.data?.detail || 'Error al registrar la venta');
+      }
+    } finally { setSubmitting(false); }
   };
 
   const handleManualPrint = () => {
