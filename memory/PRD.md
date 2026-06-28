@@ -73,6 +73,19 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
+### Implementado en v2.4 (Feb 2026)
+- ✅ **Propinas configurables por cajero**:
+  - Campo global `default_tip_percent` en Settings (data-testid `tips-config-card`, presets 0/10/15/20%)
+  - Override por cajero `default_tip_percent` en /cashiers (data-testid `cashier-tip-input`, badge `cashier-tip-badge-{id}`)
+  - Selector de propina en checkout POS: modo % (presets + libre) y modo $ (data-testid `tip-mode-percent`, `tip-mode-custom`, `tip-percent-{0,10,15,20}`, `tip-custom-input`)
+  - Auto-inicializa con la propina del cajero o el global cuando se abre el checkout
+  - Desglose subtotal / propina / total en checkout y en el ticket impreso
+  - Nuevo endpoint `GET /api/stats/cashier-tips` — ranking por cajero
+  - StatsPage muestra tarjeta de propinas del día + ranking de cajeros
+  - Orders CSV ahora incluye columnas `subtotal` y `propina`
+  - Compatibilidad backwards: legacy/offline POST /api/orders sin subtotal lo auto-deriva (total - tip)
+  - Cobertura pytest: `/app/backend/tests/test_tips_feature.py` (16/16 green)
+
 ### Implementado en v2.3 (Feb 2026)
 - ✅ **Modo Offline (Fase 2-A)**:
   - Service Worker (`/sw.js`) cachea el app shell — la app carga sin internet
