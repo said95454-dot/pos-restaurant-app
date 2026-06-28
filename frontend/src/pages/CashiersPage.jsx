@@ -26,14 +26,17 @@ const CashiersPage = () => {
   const handleSave = async (form) => {
     setSaving(true);
     try {
+      const tipPct = form.default_tip_percent === '' || form.default_tip_percent === null || form.default_tip_percent === undefined
+        ? null
+        : parseFloat(form.default_tip_percent);
       if (editing.id) {
-        const payload = { name: form.name, active: form.active };
+        const payload = { name: form.name, active: form.active, default_tip_percent: tipPct };
         if (form.pin) payload.pin = form.pin;
         if (form.password) payload.password = form.password;
         await cashiersApi.update(editing.id, payload);
         toast.success('Cajero actualizado');
       } else {
-        await cashiersApi.create({ name: form.name, pin: form.pin || null, password: form.password || null });
+        await cashiersApi.create({ name: form.name, pin: form.pin || null, password: form.password || null, default_tip_percent: tipPct });
         toast.success('Cajero creado');
       }
       setEditing(null);
@@ -88,9 +91,12 @@ const CashiersPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-foreground truncate">{c.name}</p>
-                  <div className="flex items-center gap-1.5 text-xs text-foreground/50 mt-0.5">
+                  <div className="flex items-center gap-1.5 text-xs text-foreground/50 mt-0.5 flex-wrap">
                     {c.has_pin && <span className="bg-ink-800/60 border border-white/5 px-2 py-0.5 rounded-full">PIN</span>}
                     {c.has_password && <span className="bg-ink-800/60 border border-white/5 px-2 py-0.5 rounded-full">Contraseña</span>}
+                    {c.default_tip_percent != null && (
+                      <span className="bg-success/10 text-success border border-success/30 px-2 py-0.5 rounded-full font-bold" data-testid={`cashier-tip-badge-${c.id}`}>Propina {c.default_tip_percent}%</span>
+                    )}
                     {!c.active && <span className="bg-destructive/15 text-destructive border border-destructive/20 px-2 py-0.5 rounded-full">Inactivo</span>}
                   </div>
                 </div>
@@ -114,7 +120,7 @@ const CashiersPage = () => {
       </div>
 
       <CashierForm editing={editing} onClose={() => setEditing(null)} onSave={handleSave} saving={saving} />
-      <CashierLoginModal cashier={loginFor} onClose={() => setLoginFor(null)} onSuccess={(c) => { setActiveCashier(c); setLoginFor(null); toast.success(`Hola, ${c.name}`); }} />
+      <CashierLoginModal cashier={loginFor} onClose={() => setLoginFor(null)} onSuccess={(c) => { setActiveCashier(c); setLoginFor(null); toast.success(`Hola, ${c.name}`); }} cashiers={cashiers} />
     </div>
   );
 };
@@ -152,6 +158,29 @@ const CashierForm = ({ editing, onClose, onSave, saving }) => {
             <label className="text-sm font-semibold text-foreground">Contraseña <span className="text-foreground/50 text-xs">(opcional, alternativa al PIN)</span></label>
             <Input type="password" value={form.password || ''} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10" data-testid="cashier-password-input" />
           </div>
+          <div>
+            <label className="text-sm font-semibold text-foreground">Propina sugerida por defecto <span className="text-foreground/50 text-xs">(opcional, sobreescribe el % global)</span></label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={form.default_tip_percent ?? ''}
+                onChange={(e) => setForm({ ...form, default_tip_percent: e.target.value })}
+                placeholder="Usar global"
+                className="mt-1 h-12 rounded-2xl bg-ink-800/60 border border-white/10 w-32"
+                data-testid="cashier-tip-input"
+              />
+              <span className="text-foreground/60 font-semibold">%</span>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, default_tip_percent: '' })}
+                className="text-xs font-bold px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-foreground/70"
+                data-testid="cashier-tip-clear"
+              >Usar global</button>
+            </div>
+          </div>
           {editing.id && (
             <div className="flex items-center justify-between bg-ink-800/60 border border-white/5 rounded-2xl p-3">
               <div>
@@ -175,7 +204,7 @@ const CashierForm = ({ editing, onClose, onSave, saving }) => {
   );
 };
 
-const CashierLoginModal = ({ cashier, onClose, onSuccess }) => {
+const CashierLoginModal = ({ cashier, onClose, onSuccess, cashiers = [] }) => {
   const [pin, setPin] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('pin');
@@ -190,7 +219,8 @@ const CashierLoginModal = ({ cashier, onClose, onSuccess }) => {
     try {
       const payload = mode === 'pin' ? { pin } : { password, cashier_id: cashier.id };
       const r = await cashiersApi.login(payload);
-      onSuccess({ id: r.cashier_id, name: r.name });
+      const full = cashiers.find(c => c.id === r.cashier_id);
+      onSuccess({ id: r.cashier_id, name: r.name, default_tip_percent: full?.default_tip_percent ?? null });
     } catch (e) { toast.error(e.response?.data?.detail || 'Credenciales incorrectas'); }
     finally { setLoading(false); }
   };

@@ -46,6 +46,8 @@ const OrdersPage = () => {
       cliente: o.customer_name,
       cajero: o.cashier_name || '',
       items: o.items?.map(it => `${it.quantity}x ${it.product_name}`).join(' | '),
+      subtotal: (o.subtotal ?? (o.total - (o.tip || 0)))?.toFixed(2),
+      propina: (o.tip || 0).toFixed(2),
       total: o.total?.toFixed(2),
       metodo_pago: PM_LABELS[o.payment_method] || o.payment_method,
       recibido: o.amount_received?.toFixed(2) || '',

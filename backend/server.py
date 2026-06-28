@@ -169,6 +169,8 @@ class Order(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     customer_name: str
     items: List[OrderItem]
+    subtotal: float = 0.0  # suma de items antes de propina
+    tip: float = 0.0  # propina
     total: float
     payment_method: str  # "cash", "card", "transfer"
     amount_received: Optional[float] = None  # Monto recibido (para efectivo)
@@ -182,6 +184,8 @@ class Order(BaseModel):
 class OrderCreate(BaseModel):
     customer_name: str
     items: List[OrderItem]
+    subtotal: Optional[float] = None
+    tip: float = 0.0
     total: float
     payment_method: str
     amount_received: Optional[float] = None  # Monto recibido (para efectivo)
@@ -211,18 +215,21 @@ class Cashier(BaseModel):
     pin: Optional[str] = None  # PIN de 4 dígitos
     password_hash: Optional[str] = None  # Contraseña normal
     active: bool = True
+    default_tip_percent: Optional[float] = None  # override del global (None = usar global)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class CashierCreate(BaseModel):
     name: str
     pin: Optional[str] = None
     password: Optional[str] = None
+    default_tip_percent: Optional[float] = None
 
 class CashierUpdate(BaseModel):
     name: Optional[str] = None
     pin: Optional[str] = None
     password: Optional[str] = None
     active: Optional[bool] = None
+    default_tip_percent: Optional[float] = None
 
 class CashierLogin(BaseModel):
     pin: Optional[str] = None
@@ -237,6 +244,7 @@ class DailySales(BaseModel):
     cash_sales: float
     card_sales: float
     transfer_sales: float
+    total_tips: float = 0.0
 
 # Cash Register Close (Corte de Caja) Model
 class CashRegisterClose(BaseModel):
@@ -606,6 +614,7 @@ async def get_daily_sales(restaurant: dict = Depends(get_current_restaurant), da
     cash_sales = sum(order["total"] for order in orders if order["payment_method"] == "cash")
     card_sales = sum(order["total"] for order in orders if order["payment_method"] == "card")
     transfer_sales = sum(order["total"] for order in orders if order["payment_method"] == "transfer")
+    total_tips = sum(order.get("tip", 0) or 0 for order in orders)
     
     return DailySales(
         date=date_str,
@@ -613,7 +622,8 @@ async def get_daily_sales(restaurant: dict = Depends(get_current_restaurant), da
         total_sales=total_sales,
         cash_sales=cash_sales,
         card_sales=card_sales,
-        transfer_sales=transfer_sales
+        transfer_sales=transfer_sales,
+        total_tips=total_tips
     )
 
 @api_router.get("/stats/range")
@@ -634,11 +644,13 @@ async def get_sales_range(start_date: str, end_date: str, restaurant: dict = Dep
                 "total_sales": 0.0,
                 "cash_sales": 0.0,
                 "card_sales": 0.0,
-                "transfer_sales": 0.0
+                "transfer_sales": 0.0,
+                "total_tips": 0.0
             }
         
         daily_stats[order_date]["total_orders"] += 1
         daily_stats[order_date]["total_sales"] += order["total"]
+        daily_stats[order_date]["total_tips"] += (order.get("tip", 0) or 0)
         
         if order["payment_method"] == "cash":
             daily_stats[order_date]["cash_sales"] += order["total"]
@@ -650,6 +662,26 @@ async def get_sales_range(start_date: str, end_date: str, restaurant: dict = Dep
     return {"daily_stats": list(daily_stats.values())}
 
 # ========= Top Products Route - Multi-tenant =========
+@api_router.get("/stats/cashier-tips")
+async def get_cashier_tips(restaurant: dict = Depends(get_current_restaurant), date_str: Optional[str] = None):
+    restaurant_id = restaurant["id"]
+    query = {"restaurant_id": restaurant_id}
+    if date_str:
+        query["date"] = date_str
+    orders = await db.orders.find(query, {"_id": 0}).to_list(10000)
+    
+    ranking = {}
+    for o in orders:
+        cid = o.get("cashier_id") or "__none__"
+        name = o.get("cashier_name") or "Sin cajero"
+        if cid not in ranking:
+            ranking[cid] = {"cashier_id": cid, "cashier_name": name, "total_tips": 0.0, "total_orders": 0}
+        ranking[cid]["total_tips"] += (o.get("tip", 0) or 0)
+        ranking[cid]["total_orders"] += 1
+    
+    result = sorted(ranking.values(), key=lambda x: x["total_tips"], reverse=True)
+    return {"ranking": result, "date": date_str}
+
 @api_router.get("/stats/top-products")
 async def get_top_products(restaurant: dict = Depends(get_current_restaurant), date_str: Optional[str] = None, limit: int = 5):
     restaurant_id = restaurant["id"]
@@ -740,6 +772,7 @@ async def get_cashiers(restaurant: dict = Depends(get_current_restaurant)):
             "active": c.get("active", True),
             "has_pin": bool(c.get("pin")),
             "has_password": bool(c.get("password_hash")),
+            "default_tip_percent": c.get("default_tip_percent"),
             "created_at": c.get("created_at")
         })
     return result
@@ -756,7 +789,8 @@ async def create_cashier(cashier: CashierCreate, restaurant: dict = Depends(get_
     new_cashier = Cashier(
         name=cashier.name,
         pin=cashier.pin if cashier.pin else None,
-        password_hash=pwd_context.hash(cashier.password) if cashier.password else None
+        password_hash=pwd_context.hash(cashier.password) if cashier.password else None,
+        default_tip_percent=cashier.default_tip_percent
     )
     cashier_dict = new_cashier.dict()
     cashier_dict["restaurant_id"] = restaurant_id
@@ -823,12 +857,14 @@ async def get_cashier_sales(cashier_id: str, restaurant: dict = Depends(get_curr
     orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     
     total_sales = sum(o.get("total", 0) for o in orders)
+    total_tips = sum((o.get("tip", 0) or 0) for o in orders)
     total_orders = len(orders)
     
     return {
         "cashier_id": cashier_id,
         "total_orders": total_orders,
         "total_sales": total_sales,
+        "total_tips": total_tips,
         "orders": orders
     }
 

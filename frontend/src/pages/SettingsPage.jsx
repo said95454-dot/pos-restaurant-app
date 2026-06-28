@@ -3,7 +3,7 @@ import { businessApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Upload, X, Save, LogOut, Smartphone, QrCode, ExternalLink, Copy, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Upload, X, Save, LogOut, Smartphone, QrCode, ExternalLink, Copy, Volume2, VolumeX, Percent } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -50,6 +50,7 @@ const SettingsPage = () => {
         logo_size: business.logo_size || 'md',
         qr_url: business.qr_url || '',
         qr_label: business.qr_label || '',
+        default_tip_percent: parseFloat(business.default_tip_percent) || 0,
       });
       toast.success('Cambios guardados');
     } catch { toast.error('Error al guardar'); }
@@ -206,6 +207,52 @@ const SettingsPage = () => {
 
                 <Button onClick={save} className="h-12 rounded-2xl bg-amber hover:bg-amber/90 text-ink-950 font-bold px-5" disabled={saving} data-testid="save-qr-button">
                   {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <QrCode className="h-4 w-4 mr-2" />} Guardar QR
+                </Button>
+              </div>
+            </div>
+
+            {/* Tips configuration */}
+            <div className="glass rounded-3xl p-5" data-testid="tips-config-card">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="h-10 w-10 rounded-2xl bg-success/15 border border-success/30 text-success flex items-center justify-center flex-shrink-0">
+                  <Percent className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg font-bold text-foreground">Propinas sugeridas</h3>
+                  <p className="text-sm text-foreground/50">Define el % por defecto. Cada cajero puede sobreescribir el suyo.</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-semibold text-foreground">% sugerido por defecto</label>
+                  <p className="text-xs text-foreground/50 mb-1">Se aplica automáticamente en el checkout (0 = sin sugerencia)</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={business?.default_tip_percent ?? 0}
+                      onChange={(e) => setBusiness({ ...business, default_tip_percent: e.target.value })}
+                      className="mt-1 h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-success text-foreground w-40"
+                      data-testid="default-tip-input"
+                    />
+                    <span className="text-foreground/60 font-semibold">%</span>
+                    <div className="flex gap-1 ml-2">
+                      {[0, 10, 15, 20].map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setBusiness({ ...business, default_tip_percent: p })}
+                          className="text-xs font-bold px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-success/15 hover:border-success/40 hover:text-success transition"
+                          data-testid={`tip-preset-${p}`}
+                        >{p}%</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={save} className="h-12 rounded-2xl bg-success hover:bg-success/90 text-ink-950 font-bold px-5" disabled={saving} data-testid="save-tip-button">
+                  {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Percent className="h-4 w-4 mr-2" />} Guardar propina
                 </Button>
               </div>
             </div>

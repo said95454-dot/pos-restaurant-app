@@ -1,0 +1,77 @@
+{
+  "summary": "Backend pytest suite (14 cases) targeting the 'configurable tips per cashier' feature. 10 passed / 4 failed. 3 CRITICAL backend bugs found that block end-to-end persistence: (1) Business model is missing `default_tip_percent` field on GET/PUT — so SettingsPage save is silently dropped; (2) update_cashier endpoint does not write `default_tip_percent` even though CashierUpdate model accepts it — so cashier override is silently dropped; (3) Legacy POST /api/orders without `subtotal` returns 500 (Order.subtotal is required float but OrderCreate.subtotal defaults to None) — regression against offline-mode baseline. Endpoints that work: POST /api/cashiers with default_tip_percent (create-time only), POST /api/orders with tip+subtotal, GET /api/orders returns tip+subtotal, GET /api/stats/daily returns total_tips, GET /api/stats/cashier-tips returns sorted ranking. Frontend code inspection confirms all required data-testids are present (tips-config-card, default-tip-input, tip-preset-{0,10,15,20}, save-tip-button, cashier-tip-input, cashier-tip-badge-{id}, checkout-tip-section, tip-mode-percent/custom, tip-percent-*, tip-custom-input, checkout-subtotal/tip/total, confirm-checkout-button, stat-tips-card, stat-total-tips, cashier-tip-ranking). E2E UI flow could not be validated against the live preview because Playwright login submission flaked (form filled but not submitted/navigated); however backend defects above will surface in the UI regardless (Settings reload will show the saved % vanish; cashier edit won't change badge after reload).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET/PUT /api/business",
+        "issue": "Business + BusinessUpdate Pydantic models do NOT declare `default_tip_percent`. GET response omits the field; PUT request silently drops it. Frontend SettingsPage will appear to save 15% but a reload returns nothing. Fix: add `default_tip_percent: Optional[float] = 0` to both Business and BusinessUpdate models in /app/backend/server.py (around lines 120-133).",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "PUT /api/cashiers/{id}",
+        "issue": "update_cashier in /app/backend/server.py (lines 801-821) never copies `default_tip_percent` into update_data. The Pydantic model CashierUpdate has the field, but the handler only writes name/pin/password_hash/active. Result: cashier override cannot be changed after creation. Fix: add `if update.default_tip_percent is not None or 'default_tip_percent' in update.dict(exclude_unset=True): update_data['default_tip_percent'] = update.default_tip_percent` (and handle null-clear via exclude_unset).",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/orders (legacy/no subtotal)",
+        "issue": "OrderCreate.subtotal is Optional[float] = None, but Order.subtotal is `float = 0.0` (non-Optional). When a legacy payload (no subtotal) is posted, `Order(**order.dict())` passes subtotal=None and Pydantic raises -> 500 Internal Server Error. Regression vs iteration_8 baseline. Fix: either default OrderCreate.subtotal to 0.0 (and compute subtotal=total-tip when missing), or change Order.subtotal to Optional[float], or sanitize in create_order before model build.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "PUT /api/cashiers/{id} with default_tip_percent: null",
+        "issue": "Because of bug #2 above and the `update.default_tip_percent is not None` filter pattern used elsewhere, clearing back to global (null) is not supported even if bug #2 is fixed naively. Recommend using `model_dump(exclude_unset=True)` to distinguish 'omitted' from 'explicit null'."
+      },
+      {
+        "endpoint": "GET /api/stats/cashier-tips",
+        "issue": "Endpoint groups by cashier_id including '__none__' bucket for orders without cashier_id. Recommend filtering out the unassigned bucket from the ranking or labelling clearly in API contract."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Settings → save default tip %",
+        "issue": "PUT payload includes default_tip_percent but the backend Business/BusinessUpdate models drop the field. Toast may show success but reload reverts. End-user impact: feature appears broken.",
+        "affected_selectors": ["[data-testid='save-tip-button']", "[data-testid='default-tip-input']"]
+      },
+      {
+        "flow": "Cashiers → edit → set override 20%",
+        "issue": "PUT /api/cashiers/{id} ignores default_tip_percent server-side. Badge cashier-tip-badge-{id} will not update on next list refresh after edit (it WILL appear correctly for newly-created cashiers because POST persists it).",
+        "affected_selectors": ["[data-testid='cashier-tip-input']", "[data-testid^='cashier-tip-badge-']"]
+      }
+    ],
+    "design_issues": [],
+    "playwright_blockers": [
+      "Login form fill+click on https://resto-pos-hub-11.preview.emergentagent.com/login worked the first time during pytest (POST /api/auth/restaurant/login 200 in backend logs) but two Playwright sessions in this iteration could not transition past /login after fill. Form fields were populated (password dots visible) yet click on 'Entrar' did not navigate. May be a React-Hook-Form vs Playwright .fill() timing issue (input event not dispatched). Recommend adding type=submit form binding + verify via Enter key. Did not block backend testing."
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tips_feature.py",
+    "/app/test_reports/pytest/tips_results.xml"
+  ],
+  "action_items": [
+    "Add `default_tip_percent: Optional[float] = 0` to Business and BusinessUpdate Pydantic models, then wire it through update_business handler (the current update_data filter already accepts new keys).",
+    "Update update_cashier handler to write `default_tip_percent` from CashierUpdate (use `update.dict(exclude_unset=True)` to support null/clear-to-global semantics).",
+    "Fix legacy POST /api/orders 500: either default OrderCreate.subtotal to 0.0 OR compute `subtotal = total - tip` server-side when missing OR make Order.subtotal Optional.",
+    "After backend fixes: re-run /app/backend/tests/test_tips_feature.py and validate /settings UI saves & persists, /cashiers edit updates badge after reload, and POS checkout-tip flow end-to-end."
+  ],
+  "critical_code_review_comments": [
+    "server.py: Business model and BusinessUpdate were not extended for the new default_tip_percent field; the rest of the feature (stats, order persistence, cashier create-time field) is implemented but the global setting is unreachable. Treat as an incomplete migration.",
+    "server.py update_cashier: pattern of `if update.field is not None: update_data[...] = ...` does not allow clearing to null. The newly-added optional `default_tip_percent` (null = use global) requires `exclude_unset=True` to distinguish 'omitted' from 'explicit null'. Other fields (active=False would be wrong here too; active is bool not Optional, so fine).",
+    "server.py Order vs OrderCreate type mismatch on `subtotal` (required float vs Optional[float]) is a known footgun — running `Order(**order.dict())` crashes whenever the client omits subtotal. This is a regression vs the offline-mode baseline where legacy payloads worked.",
+    "Frontend wiring is correct: all data-testids declared per problem statement are present in SettingsPage, CashiersPage, POSPage, StatsPage. The cashier session in CashierGate.jsx and tip math (subtotal * pct / 100) in POSPage.jsx are correctly delineated by testids."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_tips_feature.py (new pytest file)"
+  ],
+  "success_rate": {"backend": "71% (10/14 pytest)", "frontend": "Not E2E-verified — code review only (testids present, but 2 of 4 user-facing flows are gated by backend bugs)"},
+  "test_credentials": "said95454@gmail.com / pos12345 works (backend login 200). Cashier 'saiko' PIN 1234 — not re-verified this iteration.",
+  "seed_data_creation": "Test cashier TEST_tip_cashier_{ts} created with default_tip_percent=20 (PASS), then deleted. Test order with $15 tip + $100 subtotal posted by 'TEST_CashierTip' (cashier_id='test-cashier-tip') for today's date — visible in /api/orders, /api/stats/daily.total_tips, /api/stats/cashier-tips ranking. One legacy POST attempt to /api/orders without subtotal returned 500 and was NOT persisted (no orphan record).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend test suite at /app/backend/tests/test_tips_feature.py is the regression gate for this feature. After main agent fixes (a) Business/BusinessUpdate models, (b) update_cashier default_tip_percent persistence, (c) legacy POST /api/orders 500, re-run pytest — all 14 should pass. THEN run the frontend Playwright smoke (login flake noted; prefer page.locator('input[type=email]').type() + Enter key instead of click). Stats endpoint `/api/stats/cashier-tips` is verified GREEN. POSPage tip-percent auto-init from cashier override depends on CashierGate.jsx populating activeCashier.default_tip_percent — verify by inspecting localStorage/session after gate login and comparing against the cashier list response (which DID return default_tip_percent=20.0 for the newly-created cashier).",
+  "rca of the issue": "Feature was implemented in two layers but the Business global-tip layer was forgotten on the backend. (1) SettingsPage.jsx calls PUT /api/business {default_tip_percent: 15} → FastAPI parses into BusinessUpdate which IGNORES unknown fields (no extras='allow') → only declared fields land in update_data → MongoDB document is updated with {} → GET returns Business model which also omits the field → frontend shows blank on reload. (2) CashiersPage edit calls PUT /api/cashiers/{id} {default_tip_percent: 20} → CashierUpdate model HAS the field so the body is parsed correctly → but update_cashier handler hand-crafts update_data and never copies that key → Mongo document untouched → cashier list still returns old value. (3) Order subtotal model mismatch: Order.subtotal: float = 0.0 (required) vs OrderCreate.subtotal: Optional[float] = None — passing None through `Order(**order.dict())` triggers Pydantic ValidationError → 500. Reproduce all three by running `pytest /app/backend/tests/test_tips_feature.py -v`."
+}

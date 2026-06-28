@@ -41,6 +41,10 @@ const POSContent = () => {
   const [showCart, setShowCart] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem('auto_print') !== 'false');
+  // Tip handling — percent-driven by default, custom $ allowed
+  const [tipMode, setTipMode] = useState('percent'); // 'percent' | 'custom'
+  const [tipPercent, setTipPercent] = useState(0);
+  const [tipCustom, setTipCustom] = useState('');
 
   const loadProducts = async () => {
     try {
@@ -54,13 +58,30 @@ const POSContent = () => {
 
   useEffect(() => { localStorage.setItem('auto_print', String(autoPrint)); }, [autoPrint]);
 
+  // Initialize default tip % when checkout opens (cashier > global)
+  useEffect(() => {
+    if (showCheckout) {
+      const cashierPct = cashier?.default_tip_percent;
+      const globalPct = business?.default_tip_percent;
+      const pct = (cashierPct != null ? cashierPct : globalPct) || 0;
+      setTipMode('percent');
+      setTipPercent(Number(pct) || 0);
+      setTipCustom('');
+    }
+  }, [showCheckout, cashier, business]);
+
   const filtered = useMemo(() => products.filter(p => {
     const catMatch = p.category === activeCategory;
     const sMatch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     return catMatch && sMatch;
   }), [products, activeCategory, search]);
 
-  const total = useMemo(() => cart.reduce((sum, it) => sum + it.subtotal, 0), [cart]);
+  const subtotal = useMemo(() => cart.reduce((sum, it) => sum + it.subtotal, 0), [cart]);
+  const tip = useMemo(() => {
+    if (tipMode === 'percent') return Math.round(subtotal * (Number(tipPercent) || 0)) / 100;
+    return Math.max(0, parseFloat(tipCustom) || 0);
+  }, [tipMode, tipPercent, tipCustom, subtotal]);
+  const total = useMemo(() => subtotal + tip, [subtotal, tip]);
   const change = useMemo(() => Math.max(0, (parseFloat(amountReceived) || 0) - total), [amountReceived, total]);
 
   const addToCart = (product, opts = []) => {
@@ -111,6 +132,8 @@ const POSContent = () => {
         selected_options: it.selected_options || [],
         subtotal: it.subtotal,
       })),
+      subtotal,
+      tip,
       total,
       payment_method: paymentMethod,
       amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) : null,
@@ -403,6 +426,71 @@ const POSContent = () => {
                 })}
               </div>
             </div>
+            {/* Tip selector */}
+            <div className="space-y-2" data-testid="checkout-tip-section">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Propina</label>
+                <div className="flex items-center gap-1 bg-ink-800/60 border border-white/10 rounded-xl p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setTipMode('percent')}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${tipMode === 'percent' ? 'bg-success text-ink-950' : 'text-foreground/60'}`}
+                    data-testid="tip-mode-percent"
+                  >%</button>
+                  <button
+                    type="button"
+                    onClick={() => setTipMode('custom')}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${tipMode === 'custom' ? 'bg-success text-ink-950' : 'text-foreground/60'}`}
+                    data-testid="tip-mode-custom"
+                  >$</button>
+                </div>
+              </div>
+              {tipMode === 'percent' ? (
+                <div className="grid grid-cols-5 gap-2">
+                  {[0, 10, 15, 20].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setTipPercent(p)}
+                      className={`h-11 rounded-xl border text-sm font-bold transition-all ${tipPercent === p ? 'border-success bg-success/15 text-success' : 'border-white/10 bg-white/5 text-foreground hover:bg-white/10'}`}
+                      data-testid={`tip-percent-${p}`}
+                    >{p}%</button>
+                  ))}
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={tipPercent}
+                    onChange={(e) => setTipPercent(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
+                    className="h-11 rounded-xl bg-ink-800 border-white/10 text-center font-bold"
+                    data-testid="tip-percent-input"
+                  />
+                </div>
+              ) : (
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={tipCustom}
+                  onChange={(e) => setTipCustom(e.target.value)}
+                  placeholder="0.00"
+                  className="h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-success text-foreground text-lg font-mono font-bold text-center"
+                  data-testid="tip-custom-input"
+                />
+              )}
+              <div className="flex items-center justify-between text-xs text-foreground/60 pt-1" data-testid="checkout-totals-breakdown">
+                <span>Subtotal</span>
+                <span className="font-mono font-bold text-foreground" data-testid="checkout-subtotal">{formatMoney(subtotal)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-success font-bold">+ Propina</span>
+                <span className="font-mono font-bold text-success" data-testid="checkout-tip">{formatMoney(tip)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-1">
+                <span className="text-sm font-bold text-foreground">TOTAL</span>
+                <span className="font-mono font-black text-primary-500 text-glow-cyan text-xl" data-testid="checkout-total">{formatMoney(total)}</span>
+              </div>
+            </div>
+
             <AnimatePresence>
               {paymentMethod === 'cash' && (
                 <motion.div

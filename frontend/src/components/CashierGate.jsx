@@ -39,7 +39,9 @@ const CashierGate = ({ children }) => {
     try {
       const payload = mode === 'pin' ? { pin } : { password, cashier_id: selected.id };
       const r = await cashiersApi.login(payload);
-      setActiveCashier({ id: r.cashier_id, name: r.name });
+      // Look up extra props (default_tip_percent) from the list we already fetched
+      const full = cashiers.find(c => c.id === r.cashier_id);
+      setActiveCashier({ id: r.cashier_id, name: r.name, default_tip_percent: full?.default_tip_percent ?? null });
       toast.success(`Hola, ${r.name}`);
       setSelected(null); setPin(''); setPassword('');
     } catch (e) { toast.error(e.response?.data?.detail || 'Credenciales incorrectas'); }

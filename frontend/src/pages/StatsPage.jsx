@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { statsApi } from '@/utils/api';
+import axios from 'axios';
 import { Input } from '@/components/ui/input';
-import { Loader2, TrendingUp, Banknote, CreditCard, ArrowRightLeft, Award, Calendar, Download } from 'lucide-react';
+import { Loader2, TrendingUp, Banknote, CreditCard, ArrowRightLeft, Award, Calendar, Download, Coins } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -19,6 +20,7 @@ const StatsPage = () => {
   const [rangeStart, setRangeStart] = useState(daysAgo(6));
   const [rangeEnd, setRangeEnd] = useState(today());
   const [rangeData, setRangeData] = useState([]);
+  const [tipRanking, setTipRanking] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -28,6 +30,14 @@ const StatsPage = () => {
       setDaily(d);
       setTopProducts(t.top_products || []);
       setRangeData(r.daily_stats || []);
+      try {
+        const tk = localStorage.getItem('token');
+        const tipRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/stats/cashier-tips`, {
+          params: { date_str: date },
+          headers: tk ? { Authorization: `Bearer ${tk}` } : {},
+        });
+        setTipRanking(tipRes.data?.ranking || []);
+      } catch { /* optional */ }
     } catch { toast.error('Error al cargar estadísticas'); }
     finally { setLoading(false); }
   };
@@ -42,6 +52,7 @@ const StatsPage = () => {
       efectivo: d.cash_sales?.toFixed(2),
       tarjeta: d.card_sales?.toFixed(2),
       transferencia: d.transfer_sales?.toFixed(2),
+      propinas: (d.total_tips ?? 0).toFixed(2),
     }));
     downloadCsv(`reporte_${rangeStart}_${rangeEnd}.csv`, rows);
     toast.success('CSV descargado');
@@ -75,6 +86,51 @@ const StatsPage = () => {
               <BigStat label="Ticket promedio" value={daily?.total_orders ? (daily.total_sales / daily.total_orders) : 0} format={formatMoney} icon={TrendingUp} color="success" testId="stat-avg-ticket" />
               <BigStat label="Efectivo" value={daily?.cash_sales || 0} format={formatMoney} icon={Banknote} color="primary" testId="stat-cash" />
             </motion.div>
+
+            {/* Tips card */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
+              <div className="glass rounded-3xl p-5 border border-success/20" data-testid="stat-tips-card">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-success/15 border border-success/30 text-success flex items-center justify-center">
+                      <Coins className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Propinas del día</p>
+                      <p className="font-mono font-black text-3xl text-success" data-testid="stat-total-tips">
+                        <AnimatedNumber value={daily?.total_tips || 0} format={formatMoney} />
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-success/10 border border-success/30 text-success">
+                    {daily?.total_sales > 0 ? ((daily.total_tips || 0) / daily.total_sales * 100).toFixed(1) : '0.0'}% del total
+                  </span>
+                </div>
+                <p className="text-xs text-foreground/40">Promedio por orden: <span className="font-mono font-bold text-foreground/70">{formatMoney(daily?.total_orders ? (daily.total_tips || 0) / daily.total_orders : 0)}</span></p>
+              </div>
+
+              <div className="glass rounded-3xl p-5" data-testid="cashier-tip-ranking">
+                <h3 className="font-heading text-lg font-bold mb-3 text-foreground flex items-center gap-2">
+                  <Award className="h-5 w-5 text-amber" /> Ranking de propinas por cajero
+                </h3>
+                {tipRanking.length === 0 || tipRanking.every(r => !r.total_tips) ? (
+                  <p className="text-sm text-foreground/40 text-center py-4">Sin propinas registradas hoy</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tipRanking.filter(r => r.total_tips > 0).slice(0, 5).map((r, i) => (
+                      <div key={r.cashier_id} className="flex items-center gap-3 p-2 bg-white/5 border border-white/5 rounded-xl" data-testid={`tip-rank-${i}`}>
+                        <div className={`h-8 w-8 rounded-xl flex items-center justify-center font-mono font-black text-sm ${i === 0 ? 'bg-amber text-ink-950' : 'bg-ink-700 text-foreground'}`}>{i + 1}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-foreground truncate text-sm">{r.cashier_name}</p>
+                          <p className="text-[10px] text-foreground/40">{r.total_orders} órdenes</p>
+                        </div>
+                        <span className="font-mono font-bold text-success">{formatMoney(r.total_tips)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="glass rounded-3xl p-5 mb-6">
               <h3 className="font-heading text-lg font-bold mb-4 text-foreground">Métodos de pago</h3>

@@ -65,6 +65,18 @@ const Receipt = React.forwardRef(({ order, business, restaurant }, ref) => {
         </div>
       ))}
       <div className="print-divider" />
+      {(order.tip || 0) > 0 && (
+        <>
+          <div className="print-row print-small">
+            <span>Subtotal:</span>
+            <span>{formatMoney(order.subtotal ?? (order.total - (order.tip || 0)))}</span>
+          </div>
+          <div className="print-row print-small print-bold">
+            <span>Propina:</span>
+            <span>{formatMoney(order.tip)}</span>
+          </div>
+        </>
+      )}
       <div className="print-row print-large print-bold">
         <span>TOTAL</span>
         <span>{formatMoney(order.total)}</span>
