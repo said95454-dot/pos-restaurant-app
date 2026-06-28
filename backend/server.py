@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -68,6 +68,57 @@ async def get_current_restaurant(credentials: HTTPAuthorizationCredentials = Dep
     if not restaurant:
         raise HTTPException(status_code=401, detail="Restaurante no encontrado")
     return restaurant
+
+# ============= Realtime WebSocket Manager =============
+class RealtimeManager:
+    """Broadcasts events to all sockets connected for the same restaurant_id."""
+    def __init__(self):
+        # restaurant_id -> set[WebSocket]
+        self._conns: Dict[str, set] = {}
+        self._lock = asyncio.Lock()
+
+    async def connect(self, restaurant_id: str, ws: WebSocket):
+        await ws.accept()
+        async with self._lock:
+            self._conns.setdefault(restaurant_id, set()).add(ws)
+        await self.broadcast(restaurant_id, {"type": "presence", "count": self.count(restaurant_id)})
+
+    async def disconnect(self, restaurant_id: str, ws: WebSocket):
+        async with self._lock:
+            conns = self._conns.get(restaurant_id)
+            if conns and ws in conns:
+                conns.discard(ws)
+                if not conns:
+                    self._conns.pop(restaurant_id, None)
+        try:
+            await self.broadcast(restaurant_id, {"type": "presence", "count": self.count(restaurant_id)})
+        except Exception:
+            pass
+
+    def count(self, restaurant_id: str) -> int:
+        return len(self._conns.get(restaurant_id, set()))
+
+    async def broadcast(self, restaurant_id: str, message: dict):
+        conns = list(self._conns.get(restaurant_id, set()))
+        dead = []
+        for ws in conns:
+            try:
+                await ws.send_json(message)
+            except Exception:
+                dead.append(ws)
+        if dead:
+            async with self._lock:
+                for ws in dead:
+                    self._conns.get(restaurant_id, set()).discard(ws)
+
+realtime = RealtimeManager()
+
+async def emit(restaurant_id: str, event_type: str, data: dict | None = None):
+    """Fire-and-forget broadcast; never raises into the request path."""
+    try:
+        await realtime.broadcast(restaurant_id, {"type": event_type, "data": data or {}})
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"emit({event_type}) failed: {e}")
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -509,6 +560,7 @@ async def create_product(product: ProductCreate, restaurant: dict = Depends(get_
     product_dict = new_product.dict()
     product_dict["restaurant_id"] = restaurant_id
     await db.products.insert_one(product_dict)
+    await emit(restaurant_id, "product.created", {"id": new_product.id, "name": new_product.name})
     return new_product
 
 @api_router.put("/products/{product_id}", response_model=Product)
@@ -523,6 +575,7 @@ async def update_product(product_id: str, update: ProductUpdate, restaurant: dic
         await db.products.update_one({"id": product_id, "restaurant_id": restaurant_id}, {"$set": update_data})
     
     updated_product = await db.products.find_one({"id": product_id, "restaurant_id": restaurant_id})
+    await emit(restaurant_id, "product.updated", {"id": product_id, "name": updated_product.get("name")})
     return Product(**updated_product)
 
 @api_router.delete("/products/{product_id}")
@@ -531,6 +584,7 @@ async def delete_product(product_id: str, restaurant: dict = Depends(get_current
     result = await db.products.delete_one({"id": product_id, "restaurant_id": restaurant_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
+    await emit(restaurant_id, "product.deleted", {"id": product_id})
     return {"message": "Product deleted successfully"}
 
 # ========= Order Routes - Multi-tenant =========
@@ -573,6 +627,17 @@ async def create_order(order: OrderCreate, restaurant: dict = Depends(get_curren
     order_dict = new_order.dict()
     order_dict["restaurant_id"] = restaurant_id
     await db.orders.insert_one(order_dict)
+    await emit(restaurant_id, "order.created", {
+        "id": new_order.id,
+        "customer_name": new_order.customer_name,
+        "total": new_order.total,
+        "tip": new_order.tip,
+        "subtotal": new_order.subtotal,
+        "payment_method": new_order.payment_method,
+        "cashier_name": new_order.cashier_name,
+        "items_count": len(new_order.items),
+        "created_at": new_order.created_at.isoformat() if hasattr(new_order.created_at, 'isoformat') else str(new_order.created_at),
+    })
     return new_order
 
 @api_router.put("/orders/{order_id}/print")
@@ -748,6 +813,7 @@ async def close_cash_register(data: CashRegisterCloseCreate, restaurant: dict = 
     close_dict["restaurant_id"] = restaurant_id
     
     await db.cash_register_closes.insert_one(close_dict)
+    await emit(restaurant_id, "cash-register.closed", {"date": new_close.date, "total_sales": new_close.cash_sales + new_close.card_sales + new_close.transfer_sales, "difference": difference})
     return new_close
 
 @api_router.get("/cash-register/closes", response_model=List[CashRegisterClose])
@@ -809,6 +875,7 @@ async def create_cashier(cashier: CashierCreate, restaurant: dict = Depends(get_
     cashier_dict["restaurant_id"] = restaurant_id
     
     await db.cashiers.insert_one(cashier_dict)
+    await emit(restaurant_id, "cashier.created", {"id": new_cashier.id, "name": new_cashier.name})
     return {"id": new_cashier.id, "name": new_cashier.name, "message": "Cajero creado"}
 
 @api_router.put("/cashiers/{cashier_id}")
@@ -835,6 +902,7 @@ async def update_cashier(cashier_id: str, update: CashierUpdate, restaurant: dic
     if update_data:
         await db.cashiers.update_one({"id": cashier_id, "restaurant_id": restaurant_id}, {"$set": update_data})
     
+    await emit(restaurant_id, "cashier.updated", {"id": cashier_id})
     return {"message": "Cajero actualizado"}
 
 @api_router.delete("/cashiers/{cashier_id}")
@@ -843,6 +911,7 @@ async def delete_cashier(cashier_id: str, restaurant: dict = Depends(get_current
     result = await db.cashiers.delete_one({"id": cashier_id, "restaurant_id": restaurant_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Cajero no encontrado")
+    await emit(restaurant_id, "cashier.deleted", {"id": cashier_id})
     return {"message": "Cajero eliminado"}
 
 @api_router.post("/cashiers/login")
@@ -887,6 +956,32 @@ async def get_cashier_sales(cashier_id: str, restaurant: dict = Depends(get_curr
 
 # Include the router in the main app
 app.include_router(api_router)
+
+# ============= WebSocket endpoint (must be on the main app to allow upgrade through /api ingress) =============
+@app.websocket("/api/ws")
+async def ws_realtime(ws: WebSocket, token: str = Query(...)):
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        restaurant_id = payload["restaurant_id"]
+    except Exception:
+        await ws.close(code=4401)
+        return
+    await realtime.connect(restaurant_id, ws)
+    try:
+        while True:
+            # Keep the socket open; ignore client messages (we only push from server)
+            msg = await ws.receive_text()
+            if msg == "ping":
+                try:
+                    await ws.send_json({"type": "pong"})
+                except Exception:
+                    break
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        await realtime.disconnect(restaurant_id, ws)
 
 app.add_middleware(
     CORSMiddleware,

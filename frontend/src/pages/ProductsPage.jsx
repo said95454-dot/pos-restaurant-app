@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { productsApi } from '@/utils/api';
+import { onRealtime } from '@/utils/useRealtime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -24,6 +25,16 @@ const ProductsPage = () => {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+
+  // Realtime: refresh product list when any iPad changes it
+  useEffect(() => {
+    const offs = [
+      onRealtime('product.created', load),
+      onRealtime('product.updated', load),
+      onRealtime('product.deleted', load),
+    ];
+    return () => offs.forEach(fn => fn && fn());
+  }, []);
 
   const countByCat = {
     comida: products.filter(p => p.category === 'comida').length,

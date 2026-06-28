@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { statsApi } from '@/utils/api';
+import { onRealtime } from '@/utils/useRealtime';
 import axios from 'axios';
 import { Input } from '@/components/ui/input';
 import { Loader2, TrendingUp, Banknote, CreditCard, ArrowRightLeft, Award, Calendar, Download, Coins } from 'lucide-react';
@@ -42,6 +43,12 @@ const StatsPage = () => {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [date, rangeStart, rangeEnd]);
+
+  // Realtime: refresh stats live as orders come in across iPads
+  useEffect(() => {
+    const off = onRealtime('order.created', () => load());
+    return off;
+  }, [date, rangeStart, rangeEnd]);
 
   const exportRangeCsv = () => {
     if (!rangeData.length) { toast.error('Sin datos para exportar'); return; }

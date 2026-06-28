@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import Aurora from '@/components/Aurora';
 import OnlineStatusIndicator from '@/components/OnlineStatusIndicator';
+import RealtimeIndicator from '@/components/RealtimeIndicator';
 
 const NAV = [
   { to: '/pos', label: 'Vender', icon: ShoppingCart, testId: 'nav-pos' },
@@ -58,6 +59,9 @@ const AppLayout = () => {
           )}
           <div className="mt-3">
             <OnlineStatusIndicator />
+          </div>
+          <div className="mt-2">
+            <RealtimeIndicator />
           </div>
         </div>
 

@@ -12,6 +12,7 @@ import CashierGate from '@/components/CashierGate';
 import Receipt, { printOrder } from '@/components/Receipt';
 import { playCheckout, playError, playTap } from '@/utils/sound';
 import { enqueueOrder } from '@/utils/offlineQueue';
+import { onRealtime } from '@/utils/useRealtime';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -55,6 +56,16 @@ const POSContent = () => {
     finally { setLoading(false); }
   };
   useEffect(() => { loadProducts(); }, []);
+
+  // Realtime: pull fresh products when another iPad edits them
+  useEffect(() => {
+    const offs = [
+      onRealtime('product.created', loadProducts),
+      onRealtime('product.updated', loadProducts),
+      onRealtime('product.deleted', loadProducts),
+    ];
+    return () => offs.forEach(fn => fn && fn());
+  }, []);
 
   useEffect(() => { localStorage.setItem('auto_print', String(autoPrint)); }, [autoPrint]);
 

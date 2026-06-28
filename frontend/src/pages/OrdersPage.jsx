@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ordersApi, businessApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { onRealtime } from '@/utils/useRealtime';
 import { Input } from '@/components/ui/input';
 import { Loader2, Receipt as ReceiptIcon, Banknote, CreditCard, ArrowRightLeft, User, Calendar, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,6 +33,12 @@ const OrdersPage = () => {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [date]);
+
+  // Realtime: refresh on new orders for today
+  useEffect(() => {
+    const off = onRealtime('order.created', () => { if (date === today()) load(); });
+    return off;
+  }, [date]);
 
   const handlePrint = (order) => {
     setPrinting(order);
