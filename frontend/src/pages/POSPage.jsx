@@ -69,7 +69,28 @@ const POSContent = () => {
     tablesApi.list().then((rows) => {
       if (cancelled) return;
       const t = rows.find(r => r.id === tableIdParam);
-      if (t) setActiveTable(t);
+      if (t) {
+        setActiveTable(t);
+        // Hydrate cart from existing open_ticket so the cashier can continue/add/charge
+        const ticket = t.open_ticket;
+        if (ticket && Array.isArray(ticket.items) && ticket.items.length > 0) {
+          const hydrated = ticket.items.map((it, idx) => ({
+            id: `${it.product_id || 'legacy'}-${idx}-${Date.now()}`,
+            product: {
+              id: it.product_id || `legacy-${idx}`,
+              name: it.product_name,
+              price: it.product_price ?? (it.subtotal / Math.max(1, it.quantity)),
+              image: it.image || null,
+              options: [],
+            },
+            quantity: it.quantity,
+            selected_options: it.selected_options || [],
+            subtotal: it.subtotal,
+          }));
+          setCart(hydrated);
+          toast.info(`Ticket cargado — ${ticket.item_count} artículo(s), $${Number(ticket.subtotal || 0).toFixed(2)}`, { id: `hydrate-${t.id}` });
+        }
+      }
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [tableIdParam]);
@@ -137,7 +158,15 @@ const POSContent = () => {
     // Also persist the ticket on the table so /tables shows a live preview
     const tt = activeTable?.id ? setTimeout(() => {
       tablesApi.updateTicket(activeTable.id, {
-        items: cart.map(it => ({ product_name: it.product.name, quantity: it.quantity, subtotal: it.subtotal })),
+        items: cart.map(it => ({
+          product_id: it.product.id,
+          product_name: it.product.name,
+          product_price: it.product.price,
+          quantity: it.quantity,
+          subtotal: it.subtotal,
+          selected_options: it.selected_options || [],
+          image: it.product.image || null,
+        })),
         subtotal,
         item_count: cart.reduce((s, it) => s + it.quantity, 0),
       }).catch(() => {});

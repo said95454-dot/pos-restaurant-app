@@ -294,9 +294,13 @@ class TableReservePayload(BaseModel):
     reserved_for: Optional[str] = None
 
 class TableTicketItem(BaseModel):
+    product_id: Optional[str] = None
     product_name: str
+    product_price: Optional[float] = None
     quantity: int
     subtotal: float
+    selected_options: List[dict] = []
+    image: Optional[str] = None
 
 class TableTicketPayload(BaseModel):
     items: List[TableTicketItem] = []

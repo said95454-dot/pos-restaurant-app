@@ -73,6 +73,15 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
+### Implementado en v2.11 (Feb 2026)
+- ✅ **Reabrir mesa carga el ticket existente**:
+  - `TableTicketItem` ampliado con `product_id`, `product_price`, `selected_options`, `image`
+  - POSPage al abrir con `?table=<id>` hidrata el carrito desde `open_ticket.items`
+  - Toast informativo "Ticket cargado — N artículo(s), $XXX"
+  - El cajero puede seguir agregando/quitando productos, o pasar directo a Cobrar
+  - El sync sigue funcionando: cada cambio actualiza `open_ticket` en el backend + broadcast WS
+  - Al cobrar exitosamente, la mesa se libera y el ticket se limpia automáticamente
+
 ### Implementado en v2.10 (Feb 2026)
 - ✅ **Ticket en vivo por mesa**:
   - Nuevo campo `Table.open_ticket = {items, item_count, subtotal, updated_at}`
