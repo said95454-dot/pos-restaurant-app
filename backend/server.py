@@ -274,6 +274,8 @@ class Table(BaseModel):
     current_order_id: Optional[str] = None
     opened_at: Optional[datetime] = None
     reserved_for: Optional[str] = None
+    # Live open-ticket preview (synced from POS while the cashier is building the cart)
+    open_ticket: Optional[dict] = None  # {items: [...], item_count, subtotal, updated_at}
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TableCreate(BaseModel):
@@ -290,6 +292,16 @@ class TableOpenPayload(BaseModel):
 
 class TableReservePayload(BaseModel):
     reserved_for: Optional[str] = None
+
+class TableTicketItem(BaseModel):
+    product_name: str
+    quantity: int
+    subtotal: float
+
+class TableTicketPayload(BaseModel):
+    items: List[TableTicketItem] = []
+    subtotal: float = 0.0
+    item_count: int = 0
 
 # User Models (Manager)
 class User(BaseModel):
@@ -1135,6 +1147,7 @@ async def close_table(table_id: str, restaurant: dict = Depends(get_current_rest
             "current_order_id": None,
             "opened_at": None,
             "reserved_for": None,
+            "open_ticket": None,
         }}
     )
     await emit(restaurant_id, "table.closed", {"id": table_id})
@@ -1178,6 +1191,26 @@ async def unreserve_table(table_id: str, restaurant: dict = Depends(get_current_
         raise HTTPException(status_code=404, detail="Mesa no encontrada o no reservada")
     await emit(restaurant_id, "table.unreserved", {"id": table_id})
     return {"message": "Reserva cancelada"}
+
+@api_router.put("/tables/{table_id}/ticket")
+async def update_table_ticket(table_id: str, payload: TableTicketPayload, restaurant: dict = Depends(get_current_restaurant)):
+    """Persist the live cart preview (items, subtotal, count) on an occupied table."""
+    restaurant_id = restaurant["id"]
+    table = await db.tables.find_one({"id": table_id, "restaurant_id": restaurant_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    ticket = {
+        "items": [it.dict() for it in payload.items],
+        "item_count": payload.item_count,
+        "subtotal": payload.subtotal,
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    await db.tables.update_one(
+        {"id": table_id, "restaurant_id": restaurant_id},
+        {"$set": {"open_ticket": ticket}}
+    )
+    await emit(restaurant_id, "table.ticket_updated", {"id": table_id, "item_count": ticket["item_count"], "subtotal": ticket["subtotal"]})
+    return {"message": "Ticket actualizado"}
 
 
 # Include the router in the main app

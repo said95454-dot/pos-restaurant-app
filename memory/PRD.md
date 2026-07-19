@@ -73,6 +73,16 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
+### Implementado en v2.10 (Feb 2026)
+- ✅ **Ticket en vivo por mesa**:
+  - Nuevo campo `Table.open_ticket = {items, item_count, subtotal, updated_at}`
+  - Endpoint `PUT /api/tables/{id}/ticket` sincroniza el carrito
+  - POSPage envía el ticket al backend con debounce 400ms cuando hay `activeTable`
+  - TablesPage muestra preview compacto ("TICKET EN VIVO · N artículos · $XXX") con los primeros 4 items en cada card ocupada/con cuenta
+  - Se limpia automáticamente al liberar la mesa (`table.close`)
+  - Broadcast WS `table.ticket_updated` — múltiples iPads en `/tables` se actualizan en tiempo real
+  - data-testids: `table-ticket-preview-{id}`, `table-ticket-item-{id}-{i}`
+
 ### Implementado en v2.9 (Feb 2026) — Rediseño visual
 - ✅ **Fondo "Deli Futurista Premium"**:
   - Base negro carbón profundo (#0A0A0D) tipo Michelin

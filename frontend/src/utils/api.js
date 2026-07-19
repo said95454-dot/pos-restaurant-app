@@ -101,6 +101,7 @@ export const tablesApi = {
   bill: async (id) => (await api.put(`/tables/${id}/bill`)).data,
   reserve: async (id, data) => (await api.put(`/tables/${id}/reserve`, data)).data,
   unreserve: async (id) => (await api.put(`/tables/${id}/unreserve`)).data,
+  updateTicket: async (id, data) => (await api.put(`/tables/${id}/ticket`, data)).data,
 };
 
 export default api;

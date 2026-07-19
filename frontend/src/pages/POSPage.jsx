@@ -133,8 +133,18 @@ const POSContent = () => {
     };
     // Send after tiny debounce to avoid a burst when clicking multiple items rapidly
     const t = setTimeout(() => { sendRealtime({ type: 'cart.update', data: preview }); }, 120);
-    return () => clearTimeout(t);
-  }, [cart, subtotal, tip, total, customer, paymentMethod, cashier, showCheckout]);
+
+    // Also persist the ticket on the table so /tables shows a live preview
+    const tt = activeTable?.id ? setTimeout(() => {
+      tablesApi.updateTicket(activeTable.id, {
+        items: cart.map(it => ({ product_name: it.product.name, quantity: it.quantity, subtotal: it.subtotal })),
+        subtotal,
+        item_count: cart.reduce((s, it) => s + it.quantity, 0),
+      }).catch(() => {});
+    }, 400) : null;
+
+    return () => { clearTimeout(t); if (tt) clearTimeout(tt); };
+  }, [cart, subtotal, tip, total, customer, paymentMethod, cashier, showCheckout, activeTable]);
 
   const addToCart = (product, opts = []) => {
     setCart(prev => {

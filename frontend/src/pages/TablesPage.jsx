@@ -108,6 +108,33 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
         <p className="text-xs text-foreground/60 mb-3">Reserva: <span className="font-bold text-foreground">{table.reserved_for}</span></p>
       )}
 
+      {/* Live ticket preview — shows what has been added while the table is being used */}
+      {(table.status === 'occupied' || table.status === 'billed') && table.open_ticket && table.open_ticket.item_count > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-ink-800/70 border border-white/5 p-3 mb-3 space-y-1.5"
+          data-testid={`table-ticket-preview-${table.id}`}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-500">Ticket en vivo · {table.open_ticket.item_count} artículos</span>
+            <span className="font-mono font-black text-primary-500 text-sm">${Number(table.open_ticket.subtotal || 0).toFixed(2)}</span>
+          </div>
+          <div className="max-h-24 overflow-y-auto space-y-1">
+            {(table.open_ticket.items || []).slice(0, 4).map((it, i) => (
+              <div key={i} className="flex items-center gap-2 text-[11px]" data-testid={`table-ticket-item-${table.id}-${i}`}>
+                <span className="font-mono font-bold text-primary-500/70 flex-shrink-0 w-6 text-right">×{it.quantity}</span>
+                <span className="flex-1 truncate text-foreground/70">{it.product_name}</span>
+                <span className="font-mono text-foreground/60 flex-shrink-0">${Number(it.subtotal || 0).toFixed(2)}</span>
+              </div>
+            ))}
+            {(table.open_ticket.items || []).length > 4 && (
+              <p className="text-[10px] text-foreground/40 italic">+{table.open_ticket.items.length - 4} más…</p>
+            )}
+          </div>
+        </motion.div>
+      )}
+
       <div className="flex flex-wrap gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
         {table.status === 'free' && (
           <>
@@ -280,7 +307,7 @@ const TablesPage = () => {
 
   // Realtime refresh
   useEffect(() => {
-    const events = ['table.created', 'table.updated', 'table.deleted', 'table.opened', 'table.closed', 'table.billed', 'table.reserved', 'table.unreserved', 'order.created'];
+    const events = ['table.created', 'table.updated', 'table.deleted', 'table.opened', 'table.closed', 'table.billed', 'table.reserved', 'table.unreserved', 'table.ticket_updated', 'order.created'];
     const offs = events.map(e => onRealtime(e, load));
     return () => offs.forEach(fn => fn && fn());
   }, [load]);
