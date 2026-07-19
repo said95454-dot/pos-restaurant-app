@@ -3,8 +3,8 @@
 // Caches the app shell so it loads offline. API requests are NEVER cached
 // (we want fresh data) — they fail gracefully so the app can queue them.
 
-const CACHE = 'pos-shell-v1';
-const SHELL = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'pos-shell-v3';
+const SHELL = ['/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -27,15 +27,22 @@ self.addEventListener('fetch', (e) => {
   // Don't cache POST etc.
   if (req.method !== 'GET') return;
 
-  // Network-first for navigation requests, fallback to cached app shell
-  if (req.mode === 'navigate') {
+  // NETWORK-FIRST for navigation AND for JS/CSS bundles — always try fresh, fallback to cache
+  const isBundle = /\.(js|css)$/i.test(url.pathname) || url.pathname.includes('/static/');
+  if (req.mode === 'navigate' || isBundle) {
     e.respondWith(
-      fetch(req).catch(() => caches.match('/'))
+      fetch(req).then((resp) => {
+        if (resp.ok && url.origin === self.location.origin) {
+          const clone = resp.clone();
+          caches.open(CACHE).then((c) => c.put(req, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(req).then(cached => cached || caches.match('/')))
     );
     return;
   }
 
-  // Cache-first for static assets (JS, CSS, images)
+  // Cache-first for other static assets (images, fonts)
   e.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
