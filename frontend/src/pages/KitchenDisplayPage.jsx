@@ -47,9 +47,16 @@ const authHeaders = () => {
 
 // Beep sound on new order — Web Audio API, no external file
 let audioCtx = null;
-const beep = () => {
+const ensureAudio = () => {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch { /* noop */ }
+};
+const beep = () => {
+  try {
+    ensureAudio();
+    if (!audioCtx || audioCtx.state !== 'running') return;
     const now = audioCtx.currentTime;
     const play = (freq, at, dur = 0.15) => {
       const o = audioCtx.createOscillator();
@@ -209,6 +216,13 @@ const KitchenDisplayPage = () => {
 
   useEffect(() => { localStorage.setItem('kds_sound', String(soundOn)); }, [soundOn]);
   useEffect(() => { if (isAuthenticated) load(); }, [isAuthenticated, load]);
+
+  // Unlock audio context on first pointer interaction anywhere on the page
+  useEffect(() => {
+    const unlock = () => { ensureAudio(); window.removeEventListener('pointerdown', unlock); };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    return () => window.removeEventListener('pointerdown', unlock);
+  }, []);
 
   // Realtime: new order arrives → prepend & beep, kds status change → reload
   useEffect(() => {

@@ -73,6 +73,29 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
+### Implementado en v2.7 (Feb 2026)
+- ✅ **KDS — Kitchen Display System** para cocina:
+  - Ruta `/kitchen` fullscreen (bypasa AppLayout y CashierGate; requiere restaurant auth)
+  - Modelo `Order.kds_status` (`new` | `preparing` | `ready` | `completed`) + `kds_updated_at`
+  - `GET /api/orders/kds/board` — órdenes de hoy no completadas (con backfill legacy)
+  - `PUT /api/orders/{id}/kds-status` — valida enum, emite WS `order.kds_status`
+  - UI 3 columnas: Nuevas / En preparación / Listas con contadores en vivo
+  - Botones Iniciar → Lista → Entregar (avanza) y Regresar (retrocede)
+  - Tiempo transcurrido por card: amber ≥15min, destructivo ≥25min
+  - Sonido de campana (Web Audio API) al llegar nueva orden — toggle en header, persist localStorage
+  - Audio context desbloqueado en primer pointerdown (iOS-safe)
+  - Realtime: nueva orden aparece automáticamente + toast; cambios de estado sincronizan multi-tab
+  - Cobertura pytest: `/app/backend/tests/test_kds_feature.py` (8/8 green)
+
+### Implementado en v2.6 (Feb 2026)
+- ✅ **Pantalla del cliente (Customer Display)**:
+  - Ruta `/display` fullscreen sin gate de cajero
+  - 3 estados: `IdleScreen` (bienvenida con logo), `CartScreen` (carrito en vivo a la izquierda + totales sticky a la derecha), `ThankYouScreen` (agradecimiento + propina + QR)
+  - Backend WS acepta client-relayed events `cart.update` / `cart.clear` y los rebroadcastea al mismo tenant excluyendo al remitente
+  - POSPage transmite el carrito completo (items, subtotal, tip, total, payment_method, cashier_name) con debounce 120ms
+  - Auto-snap desde thank-you a live si arriba un nuevo cart no vacío
+  - Link "Pantalla del cliente" en sidebar (target=_blank) — 2do iPad se abre limpio
+
 ### Implementado en v2.5 (Feb 2026)
 - ✅ **Sincronización en tiempo real (WebSockets)** para múltiples iPads:
   - Backend: endpoint `@app.websocket('/api/ws?token=<JWT>')` con `RealtimeManager` multi-tenant
