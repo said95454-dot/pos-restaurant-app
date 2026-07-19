@@ -234,6 +234,8 @@ class Order(BaseModel):
     date: str = Field(default_factory=lambda: datetime.utcnow().strftime("%Y-%m-%d"))
     cashier_id: Optional[str] = None
     cashier_name: Optional[str] = None
+    kds_status: str = "new"  # new | preparing | ready | completed
+    kds_updated_at: Optional[datetime] = None
 
 class OrderCreate(BaseModel):
     customer_name: str
@@ -648,6 +650,44 @@ async def mark_order_printed(order_id: str, restaurant: dict = Depends(get_curre
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
     return {"message": "Order marked as printed"}
+
+# ========= KDS (Kitchen Display) Routes =========
+class KDSStatusUpdate(BaseModel):
+    kds_status: str  # 'new' | 'preparing' | 'ready' | 'completed'
+
+@api_router.get("/orders/kds/board")
+async def kds_board(restaurant: dict = Depends(get_current_restaurant)):
+    """Returns all orders for today that are not yet completed, oldest first."""
+    restaurant_id = restaurant["id"]
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    orders = await db.orders.find(
+        {
+            "restaurant_id": restaurant_id,
+            "date": date_str,
+            "kds_status": {"$ne": "completed"},
+        },
+        {"_id": 0},
+    ).sort("created_at", 1).to_list(500)
+    # Backfill missing kds_status for legacy rows
+    for o in orders:
+        if not o.get("kds_status"):
+            o["kds_status"] = "new"
+    return orders
+
+@api_router.put("/orders/{order_id}/kds-status")
+async def update_kds_status(order_id: str, update: KDSStatusUpdate, restaurant: dict = Depends(get_current_restaurant)):
+    if update.kds_status not in ("new", "preparing", "ready", "completed"):
+        raise HTTPException(status_code=400, detail="Estado inválido")
+    restaurant_id = restaurant["id"]
+    result = await db.orders.update_one(
+        {"id": order_id, "restaurant_id": restaurant_id},
+        {"$set": {"kds_status": update.kds_status, "kds_updated_at": datetime.utcnow()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    await emit(restaurant_id, "order.kds_status", {"id": order_id, "kds_status": update.kds_status})
+    return {"message": "Estado actualizado", "kds_status": update.kds_status}
+
 
 # ========= User/Auth Routes =========
 @api_router.post("/auth/login")

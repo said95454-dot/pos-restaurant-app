@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor } from 'lucide-react';
+import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import Aurora from '@/components/Aurora';
@@ -110,6 +110,17 @@ const AppLayout = () => {
             <Monitor className="h-4 w-4" />
             <span>Pantalla del cliente</span>
             <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-primary-500/20 border border-primary-500/40 rounded-full px-1.5 py-0.5">↗</span>
+          </a>
+          <a
+            href="/kitchen"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 h-11 px-4 rounded-2xl bg-amber/10 border border-amber/30 text-amber hover:bg-amber/20 transition-all text-sm font-bold"
+            data-testid="open-kitchen-display"
+          >
+            <ChefHat className="h-4 w-4" />
+            <span>Cocina (KDS)</span>
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-amber/20 border border-amber/40 rounded-full px-1.5 py-0.5">↗</span>
           </a>
           {cashier && (
             <Button

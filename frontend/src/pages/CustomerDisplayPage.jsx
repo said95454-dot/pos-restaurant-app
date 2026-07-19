@@ -263,9 +263,14 @@ const CustomerDisplayPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     const offCart = onRealtime('cart.update', (data) => {
-      if (thankTimerRef.current) return; // Ignore updates while showing thank-you
+      // If a new non-empty cart arrives during thank-you window, snap back to live preview
+      if (thankTimerRef.current && (data?.items || []).length > 0) {
+        clearTimeout(thankTimerRef.current);
+        thankTimerRef.current = null;
+        setLastOrder(null);
+      }
+      if (thankTimerRef.current) return;
       setCart(data);
-      // Idle timeout: if no updates for 3 minutes and no items, go back to idle
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       if ((data?.items || []).length === 0) {
         idleTimerRef.current = setTimeout(() => setCart(null), 90000);

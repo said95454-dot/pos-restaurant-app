@@ -17,6 +17,7 @@ import CashRegisterPage from "@/pages/CashRegisterPage";
 import CashiersPage from "@/pages/CashiersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import CustomerDisplayPage from "@/pages/CustomerDisplayPage";
+import KitchenDisplayPage from "@/pages/KitchenDisplayPage";
 import AppLayout from "@/components/AppLayout";
 import Splash from "@/components/Splash";
 
@@ -69,6 +70,9 @@ function AppRoutes() {
 
         {/* Customer display: fullscreen, no sidebar/chrome. Requires restaurant auth but no cashier. */}
         <Route path="/display" element={<Protected><PageTransition><CustomerDisplayPage /></PageTransition></Protected>} />
+
+        {/* Kitchen display: fullscreen KDS for the kitchen team. */}
+        <Route path="/kitchen" element={<Protected><PageTransition><KitchenDisplayPage /></PageTransition></Protected>} />
       </Routes>
     </AnimatePresence>
   );
