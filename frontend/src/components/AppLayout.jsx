@@ -1,8 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor, ChefHat, UtensilsCrossed } from 'lucide-react';
+import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor, ChefHat, UtensilsCrossed, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import Aurora from '@/components/Aurora';
 import OnlineStatusIndicator from '@/components/OnlineStatusIndicator';
@@ -23,6 +33,7 @@ const AppLayout = () => {
   const { restaurant, cashier, logout, setActiveCashier } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -145,7 +156,7 @@ const AppLayout = () => {
           ) : (
             <Button
               variant="ghost"
-              onClick={handleLogout}
+              onClick={() => setConfirmLogoutOpen(true)}
               className="w-full justify-start gap-3 h-11 rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
               data-testid="sidebar-logout-button"
             >
@@ -154,6 +165,40 @@ const AppLayout = () => {
           )}
         </div>
       </aside>
+
+      {/* Confirm logout dialog */}
+      <AlertDialog open={confirmLogoutOpen} onOpenChange={setConfirmLogoutOpen}>
+        <AlertDialogContent className="bg-ink-900 border border-white/10 text-foreground max-w-md" data-testid="confirm-logout-dialog">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-10 w-10 rounded-2xl bg-destructive/15 border border-destructive/30 text-destructive flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <AlertDialogTitle className="font-heading text-xl font-black text-foreground">
+                ¿Cerrar sesión?
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-foreground/60">
+              Vas a cerrar la sesión del restaurante. Tendrás que volver a iniciar sesión para acceder al POS. Cualquier ticket en curso ya está guardado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel
+              className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-foreground"
+              data-testid="confirm-logout-cancel"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="rounded-2xl bg-destructive hover:bg-destructive/90 text-white font-bold"
+              data-testid="confirm-logout-confirm"
+            >
+              Sí, cerrar sesión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Main */}
       <main className="flex-1 overflow-hidden flex flex-col safe-top relative z-10" data-testid="app-main">
