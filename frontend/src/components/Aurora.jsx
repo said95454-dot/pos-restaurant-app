@@ -1,57 +1,66 @@
 import React from 'react';
-import {
-  UtensilsCrossed, ChefHat, Coffee, Pizza, Wine, Soup, Sandwich,
-  Cookie, IceCream, Croissant, CupSoda, CakeSlice, Salad, Beef, Fish,
-  Beer, Martini, Hamburger,
-} from 'lucide-react';
 
 /**
- * FUTURISTIC RESTAURANT BACKGROUND
- * Neon food icons floating like in a cybernetic kitchen, warm ambient
- * glow like a high-end restaurant at night, ember particles rising.
+ * "Deli Futurista Premium" background — v2.9
+ * Layers (back → front):
+ *  1. Deep carbon base (#0A0A0D)
+ *  2. Slow-moving copper + cyan orbs (very subtle)
+ *  3. Fine dot grid (fintech-tech vibe)
+ *  4. Corner watermark glyphs (fork, knife, glass) as line-art
+ *  5. Scanner line that sweeps every 15s
+ *  6. Radial copper glow from top-center (warmth)
+ *  7. Vignette + film grain (Apple/Rolls Royce premium feel)
  */
-const FLOATING_ICONS = [
-  { Icon: ChefHat,         top: '6%',   left: '4%',   size: 78, tone: 'warm',  delay: '0s' },
-  { Icon: UtensilsCrossed, top: '20%',  right: '6%',  size: 90, tone: 'red',   delay: '-4s' },
-  { Icon: Pizza,           top: '68%',  right: '4%',  size: 110, tone: 'red',  delay: '-8s' },
-  { Icon: Wine,            top: '28%',  left: '8%',   size: 86, tone: 'cool',  delay: '-5s' },
-  { Icon: Soup,            bottom: '8%',  left: '6%',  size: 78, tone: 'warm', delay: '-1s' },
-  { Icon: Coffee,          top: '50%',  right: '26%', size: 66, tone: 'warm',  delay: '-2s' },
-  { Icon: Sandwich,        top: '55%',  left: '24%',  size: 72, tone: 'warm',  delay: '-6s' },
-  { Icon: IceCream,        top: '15%',  left: '48%',  size: 64, tone: 'cool',  delay: '-7s' },
-  { Icon: Croissant,       bottom: '32%', left: '52%', size: 70, tone: 'warm', delay: '-9s' },
-  { Icon: CakeSlice,       top: '38%',  left: '68%',  size: 68, tone: 'red',   delay: '-6s' },
-  { Icon: Salad,           bottom: '22%', left: '36%', size: 72, tone: 'cool', delay: '-2s' },
-  { Icon: Beef,            bottom: '45%', right: '42%', size: 68, tone: 'red', delay: '-5s' },
-  { Icon: Fish,            top: '12%',  right: '38%', size: 64, tone: 'cool',  delay: '-8s' },
-  { Icon: Cookie,          bottom: '6%',  right: '32%', size: 58, tone: 'warm', delay: '-3s' },
-  { Icon: CupSoda,         top: '78%',  left: '72%',  size: 60, tone: 'cool',  delay: '-4s' },
-  { Icon: Beer,            top: '40%',  left: '38%',  size: 70, tone: 'warm',  delay: '-3.5s' },
-  { Icon: Martini,         bottom: '15%', right: '18%', size: 68, tone: 'cool', delay: '-6.5s' },
-  { Icon: Hamburger,       top: '82%',  left: '18%',  size: 74, tone: 'warm',  delay: '-1.5s' },
-];
-
 export const Aurora = ({ className = '' }) => (
-  <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
-    <div className="resto-bg" />
-    <div className="resto-tiles" />
+  <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`} data-testid="aurora-premium">
+    {/* Base carbon */}
+    <div className="deli-base" />
 
-    {/* Floating neon food icons — the restaurant identity */}
-    {FLOATING_ICONS.map(({ Icon, tone, size, delay, ...pos }, i) => (
-      <div
-        key={i}
-        className={`resto-icon-float ${tone}`}
-        style={{ ...pos, animationDelay: delay }}
-      >
-        <Icon size={size} strokeWidth={1.3} />
-      </div>
-    ))}
+    {/* Radial copper warmth from top-center */}
+    <div className="deli-warmth" />
 
-    <div className="resto-orb-amber" />
-    <div className="resto-orb-cool" />
-    <div className="resto-flame" />
-    <div className="resto-steam" />
-    <div className="resto-vignette" />
+    {/* Subtle dot grid (fintech tech texture) */}
+    <div className="deli-grid" />
+
+    {/* Slow copper + cyan orbs */}
+    <div className="deli-orb deli-orb-copper" />
+    <div className="deli-orb deli-orb-cyan" />
+
+    {/* Watermark gastronomy line-art glyphs (very tenuous) */}
+    <svg className="deli-glyph deli-glyph-tl" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      {/* Chef's knife */}
+      <path d="M20 150 L80 90 L170 45 L180 55 L95 105 L35 165 Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M25 155 L45 175" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+
+    <svg className="deli-glyph deli-glyph-br" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      {/* Wine glass */}
+      <path d="M60 30 L140 30 L130 90 Q100 120 70 90 Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M100 120 L100 170" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M70 170 L130 170" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+
+    <svg className="deli-glyph deli-glyph-tr" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      {/* Fork */}
+      <path d="M85 20 L85 65 M100 20 L100 65 M115 20 L115 65" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M75 65 L125 65 L120 90 L80 90 Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M100 90 L100 180" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+
+    <svg className="deli-glyph deli-glyph-bl" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+      {/* Serving dome/cloche */}
+      <path d="M35 140 Q100 40 165 140" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M25 145 L175 145" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="100" cy="55" r="4" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+
+    {/* Slow horizontal scanner */}
+    <div className="deli-scanner" />
+
+    {/* Vignette to focus attention */}
+    <div className="deli-vignette" />
+
+    {/* Fine grain (film texture) */}
     <div className="grain" />
   </div>
 );

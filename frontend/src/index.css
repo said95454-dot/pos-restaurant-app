@@ -444,3 +444,138 @@ input::placeholder, textarea::placeholder { color: rgba(236, 236, 241, 0.30); }
   #emergent-badge, .no-print { display: none !important; }
   @page { margin: 0; size: 80mm auto; } /* thermal printer 80mm width */
 }
+
+
+/* ============================================================
+ * "Deli Futurista Premium" background (v2.9)
+ * Layered, low-motion, restaurant-grade
+ * ============================================================ */
+
+.deli-base {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #0A0A0D;
+}
+
+.deli-warmth {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 50% 0%, rgba(192, 138, 92, 0.11) 0%, rgba(192, 138, 92, 0.04) 35%, transparent 70%),
+    radial-gradient(80% 60% at 50% 120%, rgba(0, 229, 255, 0.05) 0%, transparent 70%);
+}
+
+/* Subtle geometric dot grid — the fintech "tech" texture */
+.deli-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, black 45%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, black 45%, transparent 100%);
+}
+
+/* Massive slow-moving orbs — very blurred, very slow */
+.deli-orb {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  opacity: 0.35;
+  will-change: transform;
+}
+.deli-orb-copper {
+  top: -20vmax;
+  right: -20vmax;
+  background: radial-gradient(circle, rgba(192, 138, 92, 0.55) 0%, rgba(192, 138, 92, 0) 65%);
+  animation: deli-drift-1 48s ease-in-out infinite alternate;
+}
+.deli-orb-cyan {
+  bottom: -25vmax;
+  left: -25vmax;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.35) 0%, rgba(0, 229, 255, 0) 65%);
+  animation: deli-drift-2 60s ease-in-out infinite alternate;
+}
+
+@keyframes deli-drift-1 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-6vmax, 4vmax, 0) scale(1.08); }
+}
+@keyframes deli-drift-2 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(5vmax, -3vmax, 0) scale(1.1); }
+}
+
+/* Corner watermark gastronomy glyphs — line-art, very tenuous */
+.deli-glyph {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  color: rgba(192, 138, 92, 0.10);
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 0 12px rgba(192, 138, 92, 0.08));
+}
+.deli-glyph-tl { top: 2vh; left: 2vw; }
+.deli-glyph-tr { top: 2vh; right: 2vw; color: rgba(0, 229, 255, 0.08); }
+.deli-glyph-bl { bottom: 4vh; left: 2vw; color: rgba(0, 229, 255, 0.08); }
+.deli-glyph-br { bottom: 4vh; right: 2vw; }
+
+@media (max-width: 768px) {
+  .deli-glyph { width: 140px; height: 140px; opacity: 0.65; }
+}
+
+/* Scanner line — slow horizontal sweep every 15s */
+.deli-scanner {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  height: 220px;
+  top: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(0, 229, 255, 0.045) 40%,
+    rgba(192, 138, 92, 0.06) 50%,
+    rgba(0, 229, 255, 0.045) 60%,
+    transparent 100%);
+  filter: blur(20px);
+  animation: deli-scan 15s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes deli-scan {
+  0%   { transform: translateY(-30%); opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translateY(120vh); opacity: 0; }
+}
+
+/* Vignette to focus attention */
+.deli-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .deli-orb-copper, .deli-orb-cyan, .deli-scanner {
+    animation: none !important;
+  }
+  .deli-scanner { display: none; }
+}

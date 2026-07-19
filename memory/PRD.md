@@ -73,6 +73,18 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
+### Implementado en v2.9 (Feb 2026) — Rediseño visual
+- ✅ **Fondo "Deli Futurista Premium"**:
+  - Base negro carbón profundo (#0A0A0D) tipo Michelin
+  - Gradiente radial cobre cálido desde el centro superior + hint cyan desde abajo
+  - Grilla de puntos sutil (fintech tech texture) con máscara radial
+  - 2 orbes gigantes (cobre + cyan) muy borrosos moviéndose lentísimo — aurora refinada
+  - 4 watermarks gastronómicos SVG en las esquinas (cuchillo, tenedor, copa, cloche) — line-art muy tenue
+  - Scanner line horizontal barre cada 15s (efecto cyberpunk sutil)
+  - Vignette + grano fino (feel Apple/Rolls Royce)
+  - `prefers-reduced-motion`: desactiva animaciones automáticamente
+  - Aurora antigua guardada como `Aurora.legacy.jsx` (1-línea rollback disponible)
+
 ### Implementado en v2.8 (Feb 2026)
 - ✅ **Mesas + Sala (Fase A)**:
   - Modelo `Table` con id, number único por restaurant, capacity, status (free/occupied/billed/reserved), waiter_id, waiter_name, current_order_id, opened_at, reserved_for
