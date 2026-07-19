@@ -18,6 +18,7 @@ import CashiersPage from "@/pages/CashiersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import CustomerDisplayPage from "@/pages/CustomerDisplayPage";
 import KitchenDisplayPage from "@/pages/KitchenDisplayPage";
+import TablesPage from "@/pages/TablesPage";
 import AppLayout from "@/components/AppLayout";
 import Splash from "@/components/Splash";
 
@@ -60,6 +61,7 @@ function AppRoutes() {
 
         <Route element={<Protected><AppLayout /></Protected>}>
           <Route path="/pos" element={<POSPage />} />
+          <Route path="/tables" element={<TablesPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/stats" element={<StatsPage />} />

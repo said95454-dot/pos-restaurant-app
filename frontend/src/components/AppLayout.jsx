@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor, ChefHat } from 'lucide-react';
+import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor, ChefHat, UtensilsCrossed } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import Aurora from '@/components/Aurora';
@@ -10,6 +10,7 @@ import RealtimeIndicator from '@/components/RealtimeIndicator';
 
 const NAV = [
   { to: '/pos', label: 'Vender', icon: ShoppingCart, testId: 'nav-pos' },
+  { to: '/tables', label: 'Sala', icon: UtensilsCrossed, testId: 'nav-tables' },
   { to: '/products', label: 'Productos', icon: Package, testId: 'nav-products' },
   { to: '/orders', label: 'Órdenes', icon: ListOrdered, testId: 'nav-orders' },
   { to: '/stats', label: 'Estadísticas', icon: BarChart3, testId: 'nav-stats' },

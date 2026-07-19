@@ -236,6 +236,8 @@ class Order(BaseModel):
     cashier_name: Optional[str] = None
     kds_status: str = "new"  # new | preparing | ready | completed
     kds_updated_at: Optional[datetime] = None
+    table_id: Optional[str] = None
+    table_number: Optional[int] = None
 
 class OrderCreate(BaseModel):
     customer_name: str
@@ -248,6 +250,8 @@ class OrderCreate(BaseModel):
     change: Optional[float] = None  # Cambio dado (para efectivo)
     cashier_id: Optional[str] = None
     cashier_name: Optional[str] = None
+    table_id: Optional[str] = None
+    table_number: Optional[int] = None
 
     @validator('subtotal', always=True)
     def _default_subtotal(cls, v, values):
@@ -255,6 +259,37 @@ class OrderCreate(BaseModel):
             # legacy clients without subtotal: derive from total - tip
             return float(values.get('total', 0)) - float(values.get('tip', 0) or 0)
         return v
+
+
+# ========= Table (Sala) Models =========
+TABLE_STATUSES = ("free", "occupied", "billed", "reserved")
+
+class Table(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    number: int
+    capacity: int = 4
+    status: str = "free"  # free | occupied | billed | reserved
+    waiter_id: Optional[str] = None
+    waiter_name: Optional[str] = None
+    current_order_id: Optional[str] = None
+    opened_at: Optional[datetime] = None
+    reserved_for: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TableCreate(BaseModel):
+    number: int
+    capacity: int = 4
+
+class TableUpdate(BaseModel):
+    number: Optional[int] = None
+    capacity: Optional[int] = None
+
+class TableOpenPayload(BaseModel):
+    waiter_id: Optional[str] = None
+    waiter_name: Optional[str] = None
+
+class TableReservePayload(BaseModel):
+    reserved_for: Optional[str] = None
 
 # User Models (Manager)
 class User(BaseModel):
@@ -630,6 +665,13 @@ async def create_order(order: OrderCreate, restaurant: dict = Depends(get_curren
     order_dict = new_order.dict()
     order_dict["restaurant_id"] = restaurant_id
     await db.orders.insert_one(order_dict)
+    # If the order is bound to a table, mark it as billed and store current_order_id
+    if new_order.table_id:
+        await db.tables.update_one(
+            {"id": new_order.table_id, "restaurant_id": restaurant_id},
+            {"$set": {"status": "billed", "current_order_id": new_order.id}},
+        )
+        await emit(restaurant_id, "table.billed", {"id": new_order.table_id, "current_order_id": new_order.id})
     await emit(restaurant_id, "order.created", {
         "id": new_order.id,
         "customer_name": new_order.customer_name,
@@ -994,6 +1036,145 @@ async def get_cashier_sales(cashier_id: str, restaurant: dict = Depends(get_curr
         "total_tips": total_tips,
         "orders": orders
     }
+
+# ========= Tables (Sala) Routes - Multi-tenant =========
+@api_router.get("/tables")
+async def list_tables(restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    tables = await db.tables.find({"restaurant_id": restaurant_id}, {"_id": 0}).sort("number", 1).to_list(1000)
+    return tables
+
+@api_router.post("/tables")
+async def create_table(payload: TableCreate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    # Unique number per restaurant
+    existing = await db.tables.find_one({"restaurant_id": restaurant_id, "number": payload.number})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Ya existe una mesa con el número {payload.number}")
+    if payload.number <= 0 or payload.capacity <= 0:
+        raise HTTPException(status_code=400, detail="Número y capacidad deben ser positivos")
+    new_table = Table(number=payload.number, capacity=payload.capacity)
+    doc = new_table.dict()
+    doc["restaurant_id"] = restaurant_id
+    await db.tables.insert_one(doc)
+    await emit(restaurant_id, "table.created", {"id": new_table.id, "number": new_table.number})
+    return new_table
+
+@api_router.put("/tables/{table_id}")
+async def update_table(table_id: str, payload: TableUpdate, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    table = await db.tables.find_one({"id": table_id, "restaurant_id": restaurant_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    update = {k: v for k, v in payload.dict().items() if v is not None}
+    if "number" in update:
+        if update["number"] != table.get("number"):
+            other = await db.tables.find_one({"restaurant_id": restaurant_id, "number": update["number"]})
+            if other:
+                raise HTTPException(status_code=400, detail=f"Ya existe una mesa con el número {update['number']}")
+        if update["number"] <= 0:
+            raise HTTPException(status_code=400, detail="Número inválido")
+    if "capacity" in update and update["capacity"] <= 0:
+        raise HTTPException(status_code=400, detail="Capacidad inválida")
+    if update:
+        await db.tables.update_one({"id": table_id, "restaurant_id": restaurant_id}, {"$set": update})
+    await emit(restaurant_id, "table.updated", {"id": table_id})
+    return {"message": "Mesa actualizada"}
+
+@api_router.delete("/tables/{table_id}")
+async def delete_table(table_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    table = await db.tables.find_one({"id": table_id, "restaurant_id": restaurant_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    if table.get("status") in ("occupied", "billed"):
+        raise HTTPException(status_code=400, detail="No se puede eliminar una mesa con orden activa")
+    await db.tables.delete_one({"id": table_id, "restaurant_id": restaurant_id})
+    await emit(restaurant_id, "table.deleted", {"id": table_id})
+    return {"message": "Mesa eliminada"}
+
+@api_router.put("/tables/{table_id}/open")
+async def open_table(table_id: str, payload: TableOpenPayload, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    table = await db.tables.find_one({"id": table_id, "restaurant_id": restaurant_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    if table.get("status") in ("occupied", "billed"):
+        raise HTTPException(status_code=400, detail="La mesa ya está en uso")
+    await db.tables.update_one(
+        {"id": table_id, "restaurant_id": restaurant_id},
+        {"$set": {
+            "status": "occupied",
+            "waiter_id": payload.waiter_id,
+            "waiter_name": payload.waiter_name,
+            "opened_at": datetime.utcnow(),
+            "reserved_for": None,
+        }}
+    )
+    await emit(restaurant_id, "table.opened", {"id": table_id, "waiter_name": payload.waiter_name})
+    fresh = await db.tables.find_one({"id": table_id, "restaurant_id": restaurant_id}, {"_id": 0})
+    return fresh
+
+@api_router.put("/tables/{table_id}/close")
+async def close_table(table_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    """Marks the table free again (call after payment or cancel)."""
+    restaurant_id = restaurant["id"]
+    table = await db.tables.find_one({"id": table_id, "restaurant_id": restaurant_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    await db.tables.update_one(
+        {"id": table_id, "restaurant_id": restaurant_id},
+        {"$set": {
+            "status": "free",
+            "waiter_id": None,
+            "waiter_name": None,
+            "current_order_id": None,
+            "opened_at": None,
+            "reserved_for": None,
+        }}
+    )
+    await emit(restaurant_id, "table.closed", {"id": table_id})
+    return {"message": "Mesa liberada"}
+
+@api_router.put("/tables/{table_id}/bill")
+async def mark_table_billed(table_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    result = await db.tables.update_one(
+        {"id": table_id, "restaurant_id": restaurant_id},
+        {"$set": {"status": "billed"}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    await emit(restaurant_id, "table.billed", {"id": table_id})
+    return {"message": "Cuenta pedida"}
+
+@api_router.put("/tables/{table_id}/reserve")
+async def reserve_table(table_id: str, payload: TableReservePayload, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    table = await db.tables.find_one({"id": table_id, "restaurant_id": restaurant_id})
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    if table.get("status") in ("occupied", "billed"):
+        raise HTTPException(status_code=400, detail="No se puede reservar una mesa ocupada")
+    await db.tables.update_one(
+        {"id": table_id, "restaurant_id": restaurant_id},
+        {"$set": {"status": "reserved", "reserved_for": payload.reserved_for}}
+    )
+    await emit(restaurant_id, "table.reserved", {"id": table_id, "reserved_for": payload.reserved_for})
+    return {"message": "Mesa reservada"}
+
+@api_router.put("/tables/{table_id}/unreserve")
+async def unreserve_table(table_id: str, restaurant: dict = Depends(get_current_restaurant)):
+    restaurant_id = restaurant["id"]
+    result = await db.tables.update_one(
+        {"id": table_id, "restaurant_id": restaurant_id, "status": "reserved"},
+        {"$set": {"status": "free", "reserved_for": None}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada o no reservada")
+    await emit(restaurant_id, "table.unreserved", {"id": table_id})
+    return {"message": "Reserva cancelada"}
+
 
 # Include the router in the main app
 app.include_router(api_router)

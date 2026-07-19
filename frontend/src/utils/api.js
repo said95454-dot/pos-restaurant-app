@@ -90,4 +90,17 @@ export const cashiersApi = {
   sales: async (id, date_filter) => (await api.get(`/cashiers/${id}/sales`, { params: date_filter ? { date_filter } : {} })).data,
 };
 
+// ===== TABLES (Sala) =====
+export const tablesApi = {
+  list: async () => (await api.get('/tables')).data,
+  create: async (data) => (await api.post('/tables', data)).data,
+  update: async (id, data) => (await api.put(`/tables/${id}`, data)).data,
+  remove: async (id) => (await api.delete(`/tables/${id}`)).data,
+  open: async (id, data) => (await api.put(`/tables/${id}/open`, data)).data,
+  close: async (id) => (await api.put(`/tables/${id}/close`)).data,
+  bill: async (id) => (await api.put(`/tables/${id}/bill`)).data,
+  reserve: async (id, data) => (await api.put(`/tables/${id}/reserve`, data)).data,
+  unreserve: async (id) => (await api.put(`/tables/${id}/unreserve`)).data,
+};
+
 export default api;

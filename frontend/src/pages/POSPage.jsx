@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { productsApi, ordersApi, businessApi } from '@/utils/api';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { productsApi, ordersApi, businessApi, tablesApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Minus, Search, ShoppingBag, Utensils, Coffee, Banknote, CreditCard, ArrowRightLeft, Loader2, X, Check, Receipt as ReceiptIcon, Sparkles, Printer } from 'lucide-react';
+import { Plus, Minus, Search, ShoppingBag, Utensils, Coffee, Banknote, CreditCard, ArrowRightLeft, Loader2, X, Check, Receipt as ReceiptIcon, Sparkles, Printer, UtensilsCrossed } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedNumber from '@/components/AnimatedNumber';
@@ -26,6 +27,10 @@ const POSPage = () => {
 
 const POSContent = () => {
   const { restaurant, cashier } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const tableIdParam = searchParams.get('table');
+  const [activeTable, setActiveTable] = useState(null);
   const [products, setProducts] = useState([]);
   const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +61,18 @@ const POSContent = () => {
     finally { setLoading(false); }
   };
   useEffect(() => { loadProducts(); }, []);
+
+  // Load table context when navigated with ?table=<id>
+  useEffect(() => {
+    if (!tableIdParam) { setActiveTable(null); return; }
+    let cancelled = false;
+    tablesApi.list().then((rows) => {
+      if (cancelled) return;
+      const t = rows.find(r => r.id === tableIdParam);
+      if (t) setActiveTable(t);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [tableIdParam]);
 
   // Realtime: pull fresh products when another iPad edits them
   useEffect(() => {
@@ -175,6 +192,8 @@ const POSContent = () => {
       change: paymentMethod === 'cash' ? change : null,
       cashier_id: cashier?.id || null,
       cashier_name: cashier?.name || null,
+      table_id: activeTable?.id || null,
+      table_number: activeTable?.number || null,
     };
 
     const finishLocal = (orderForReceipt, message) => {
@@ -183,6 +202,12 @@ const POSContent = () => {
       setLastOrder(orderForReceipt);
       setCart([]); setCustomer(''); setAmountReceived(''); setShowCheckout(false); setShowCart(false);
       if (autoPrint) printOrder();
+      // Auto-close the table after successful checkout — sends it back to /tables free
+      if (activeTable?.id && !orderForReceipt.offline) {
+        tablesApi.close(activeTable.id).catch(() => {});
+        setActiveTable(null);
+        setTimeout(() => navigate('/tables'), 1200);
+      }
     };
 
     try {
@@ -254,6 +279,32 @@ const POSContent = () => {
                 <img src={business.logo} alt="" className="w-full h-full object-contain" />
               </div>
             </div>
+          )}
+          {activeTable && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between gap-3 mb-3 p-3 rounded-2xl bg-amber/10 border border-amber/30"
+              data-testid="pos-active-table-banner"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-xl bg-amber/20 border border-amber/40 text-amber flex items-center justify-center">
+                  <UtensilsCrossed className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber">Mesa activa</p>
+                  <p className="font-heading text-lg font-black text-foreground leading-none">Mesa {activeTable.number} · {activeTable.capacity} personas{activeTable.waiter_name ? ` · Mesero: ${activeTable.waiter_name}` : ''}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setActiveTable(null); navigate('/pos'); }}
+                className="h-9 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-foreground/70 flex items-center gap-1"
+                data-testid="pos-leave-table-button"
+                title="Salir del contexto de mesa (no libera la mesa)"
+              >
+                <X className="h-3.5 w-3.5" /> Salir
+              </button>
+            </motion.div>
           )}
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="min-w-0">
