@@ -73,6 +73,20 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 ## Backlog (siguiente)
 
+### Implementado en v2.8 (Feb 2026)
+- ✅ **Mesas + Sala (Fase A)**:
+  - Modelo `Table` con id, number único por restaurant, capacity, status (free/occupied/billed/reserved), waiter_id, waiter_name, current_order_id, opened_at, reserved_for
+  - CRUD + máquina de estados: `POST/GET/PUT/DELETE /api/tables`, `PUT /api/tables/{id}/{open|close|bill|reserve|unreserve}`
+  - Order.table_id + Order.table_number; al crear orden con table_id, la mesa se marca automáticamente como `billed` con current_order_id (rollback + 400 si la mesa no existe/no pertenece al tenant)
+  - Broadcasts WS: `table.{created,updated,deleted,opened,closed,billed,reserved,unreserved}`
+  - Página `/tables` visual: cards por mesa con badge de estado, contador tiempo, botones Abrir/Continuar/Liberar/Reservar/Sentar/Cancelar, modales para abrir con mesero (dropdown de cajeros) y reservar
+  - Sidebar entrada "Sala" (nav-tables) entre Vender y Productos
+  - POSPage lee `?table=<id>`, muestra banner de mesa activa (número, capacidad, mesero) y auto-cierra la mesa + navega a /tables tras checkout online
+  - Stats por estado (Libres/Ocupadas/Cuenta/Reservadas) en el header de Sala
+  - Realtime: multi-tab de /tables se sincroniza automáticamente
+  - Cobertura pytest: `/app/backend/tests/test_tables_feature.py` (11/11 green)
+  - **Fase B (Backlog)**: split de cuenta + integración fina con KDS/Customer Display para mostrar mesa
+
 ### Implementado en v2.7 (Feb 2026)
 - ✅ **KDS — Kitchen Display System** para cocina:
   - Ruta `/kitchen` fullscreen (bypasa AppLayout y CashierGate; requiere restaurant auth)

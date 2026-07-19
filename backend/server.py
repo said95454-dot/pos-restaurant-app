@@ -667,10 +667,14 @@ async def create_order(order: OrderCreate, restaurant: dict = Depends(get_curren
     await db.orders.insert_one(order_dict)
     # If the order is bound to a table, mark it as billed and store current_order_id
     if new_order.table_id:
-        await db.tables.update_one(
+        upd = await db.tables.update_one(
             {"id": new_order.table_id, "restaurant_id": restaurant_id},
             {"$set": {"status": "billed", "current_order_id": new_order.id}},
         )
+        if upd.matched_count == 0:
+            # Roll back the order to keep state consistent
+            await db.orders.delete_one({"id": new_order.id, "restaurant_id": restaurant_id})
+            raise HTTPException(status_code=400, detail="La mesa asociada a la orden no existe")
         await emit(restaurant_id, "table.billed", {"id": new_order.table_id, "current_order_id": new_order.id})
     await emit(restaurant_id, "order.created", {
         "id": new_order.id,
