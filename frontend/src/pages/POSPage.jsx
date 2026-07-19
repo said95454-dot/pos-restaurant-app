@@ -152,8 +152,11 @@ const POSContent = () => {
       cashier_name: cashier?.name || null,
       is_checkout_open: showCheckout,
     };
-    // Send after tiny debounce to avoid a burst when clicking multiple items rapidly
-    const t = setTimeout(() => { sendRealtime({ type: 'cart.update', data: preview }); }, 120);
+    // Send after tiny debounce — but only when NOT working on a table
+    // (table orders shouldn't be mirrored on the customer display, only walk-in/counter sales do)
+    const t = !activeTable?.id ? setTimeout(() => {
+      sendRealtime({ type: 'cart.update', data: preview });
+    }, 120) : null;
 
     // Also persist the ticket on the table so /tables shows a live preview
     const tt = activeTable?.id ? setTimeout(() => {
@@ -172,8 +175,15 @@ const POSContent = () => {
       }).catch(() => {});
     }, 400) : null;
 
-    return () => { clearTimeout(t); if (tt) clearTimeout(tt); };
+    return () => { if (t) clearTimeout(t); if (tt) clearTimeout(tt); };
   }, [cart, subtotal, tip, total, customer, paymentMethod, cashier, showCheckout, activeTable]);
+
+  // When entering table mode mid-session, clear whatever the customer display is showing
+  useEffect(() => {
+    if (activeTable?.id) {
+      sendRealtime({ type: 'cart.clear', data: {} });
+    }
+  }, [activeTable?.id]);
 
   const addToCart = (product, opts = []) => {
     setCart(prev => {
