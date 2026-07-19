@@ -12,7 +12,7 @@ import CashierGate from '@/components/CashierGate';
 import Receipt, { printOrder } from '@/components/Receipt';
 import { playCheckout, playError, playTap } from '@/utils/sound';
 import { enqueueOrder } from '@/utils/offlineQueue';
-import { onRealtime } from '@/utils/useRealtime';
+import { onRealtime, sendRealtime } from '@/utils/useRealtime';
 
 const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -94,6 +94,30 @@ const POSContent = () => {
   }, [tipMode, tipPercent, tipCustom, subtotal]);
   const total = useMemo(() => subtotal + tip, [subtotal, tip]);
   const change = useMemo(() => Math.max(0, (parseFloat(amountReceived) || 0) - total), [amountReceived, total]);
+
+  // Broadcast cart preview to the customer display screen(s) in real-time
+  useEffect(() => {
+    const preview = {
+      customer: customer || '',
+      items: cart.map(it => ({
+        product_name: it.product.name,
+        product_price: it.product.price,
+        quantity: it.quantity,
+        subtotal: it.subtotal,
+        selected_options: (it.selected_options || []).map(o => o.name || o),
+        image: it.product.image || null,
+      })),
+      subtotal,
+      tip,
+      total,
+      payment_method: paymentMethod,
+      cashier_name: cashier?.name || null,
+      is_checkout_open: showCheckout,
+    };
+    // Send after tiny debounce to avoid a burst when clicking multiple items rapidly
+    const t = setTimeout(() => { sendRealtime({ type: 'cart.update', data: preview }); }, 120);
+    return () => clearTimeout(t);
+  }, [cart, subtotal, tip, total, customer, paymentMethod, cashier, showCheckout]);
 
   const addToCart = (product, opts = []) => {
     setCart(prev => {

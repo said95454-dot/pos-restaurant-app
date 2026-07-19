@@ -16,6 +16,7 @@ import StatsPage from "@/pages/StatsPage";
 import CashRegisterPage from "@/pages/CashRegisterPage";
 import CashiersPage from "@/pages/CashiersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import CustomerDisplayPage from "@/pages/CustomerDisplayPage";
 import AppLayout from "@/components/AppLayout";
 import Splash from "@/components/Splash";
 
@@ -65,6 +66,9 @@ function AppRoutes() {
           <Route path="/cashiers" element={<CashiersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
+
+        {/* Customer display: fullscreen, no sidebar/chrome. Requires restaurant auth but no cashier. */}
+        <Route path="/display" element={<Protected><PageTransition><CustomerDisplayPage /></PageTransition></Protected>} />
       </Routes>
     </AnimatePresence>
   );

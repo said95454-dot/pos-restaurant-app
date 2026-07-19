@@ -6,6 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import asyncio
+import json
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, validator
 from typing import List, Optional, Dict, Any
@@ -969,13 +970,28 @@ async def ws_realtime(ws: WebSocket, token: str = Query(...)):
     await realtime.connect(restaurant_id, ws)
     try:
         while True:
-            # Keep the socket open; ignore client messages (we only push from server)
             msg = await ws.receive_text()
             if msg == "ping":
                 try:
                     await ws.send_json({"type": "pong"})
                 except Exception:
                     break
+                continue
+            # Client-relayed events (e.g. cart preview for customer display)
+            try:
+                data = json.loads(msg)
+                mtype = data.get("type")
+                if mtype in ("cart.update", "cart.clear"):
+                    # Rebroadcast to all *other* sockets on the same tenant
+                    for peer in list(realtime._conns.get(restaurant_id, set())):
+                        if peer is ws:
+                            continue
+                        try:
+                            await peer.send_json({"type": mtype, "data": data.get("data", {})})
+                        except Exception:
+                            pass
+            except Exception:
+                pass
     except WebSocketDisconnect:
         pass
     except Exception:

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles } from 'lucide-react';
+import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import Aurora from '@/components/Aurora';
@@ -100,6 +100,17 @@ const AppLayout = () => {
         </nav>
 
         <div className="p-3 border-t border-white/5 space-y-2">
+          <a
+            href="/display"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 h-11 px-4 rounded-2xl bg-primary-500/10 border border-primary-500/30 text-primary-500 hover:bg-primary-500/20 transition-all text-sm font-bold"
+            data-testid="open-customer-display"
+          >
+            <Monitor className="h-4 w-4" />
+            <span>Pantalla del cliente</span>
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-primary-500/20 border border-primary-500/40 rounded-full px-1.5 py-0.5">↗</span>
+          </a>
           {cashier && (
             <Button
               variant="outline"

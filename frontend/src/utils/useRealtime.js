@@ -11,6 +11,17 @@ const toWsUrl = (httpUrl) => httpUrl.replace(/^http/i, 'ws');
 let sharedWs = null;
 let sharedSubs = 0;
 
+// Send a message through the shared realtime socket. No-op if not connected.
+export const sendRealtime = (payload) => {
+  try {
+    if (sharedWs && sharedWs.readyState === WebSocket.OPEN) {
+      sharedWs.send(typeof payload === 'string' ? payload : JSON.stringify(payload));
+      return true;
+    }
+  } catch { /* noop */ }
+  return false;
+};
+
 export const useRealtime = () => {
   const [connected, setConnected] = useState(false);
   const [presenceCount, setPresenceCount] = useState(0);
