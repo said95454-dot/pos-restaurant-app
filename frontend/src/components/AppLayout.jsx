@@ -133,14 +133,25 @@ const AppLayout = () => {
               <LogOut className="h-4 w-4" /> Salir cajero
             </Button>
           )}
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start gap-3 h-11 rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
-            data-testid="sidebar-logout-button"
-          >
-            <LogOut className="h-4 w-4" /> Cerrar sesión
-          </Button>
+          {cashier ? (
+            <div
+              className="w-full flex items-center gap-3 h-11 px-4 rounded-2xl bg-white/[0.02] border border-white/5 text-foreground/30 cursor-not-allowed"
+              data-testid="sidebar-logout-locked"
+              title="Cierra la sesión del cajero primero para poder cerrar la sesión del restaurante"
+            >
+              <LogOut className="h-4 w-4" /> Cerrar sesión
+              <span className="ml-auto text-[9px] font-bold uppercase tracking-widest bg-amber/10 border border-amber/30 text-amber rounded-full px-1.5 py-0.5">Bloqueado</span>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="w-full justify-start gap-3 h-11 rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
+              data-testid="sidebar-logout-button"
+            >
+              <LogOut className="h-4 w-4" /> Cerrar sesión
+            </Button>
+          )}
         </div>
       </aside>
 
