@@ -48,11 +48,11 @@ const RealtimeIndicator = () => {
         </div>
         {connected && (
           <div
-            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border bg-amber/10 border-amber/30 text-amber"
-            title={`${presenceCount} dispositivo(s) conectado(s)`}
+            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border bg-amber/10 border-amber/30 text-amber"
+            title={`${presenceCount} pantalla(s) conectada(s) en tiempo real`}
             data-testid="realtime-presence-count"
           >
-            <Users className="h-3 w-3" /> {presenceCount}
+            <Users className="h-3 w-3" /> {presenceCount} {presenceCount === 1 ? 'pantalla' : 'pantallas'}
           </div>
         )}
         {recentOrder && Date.now() - (recentOrder._at || 0) < 6000 && (
