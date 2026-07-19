@@ -72,8 +72,9 @@ const LoginPage = () => {
           initial={{ y: 18, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
-          className="glass-strong rounded-3xl p-6 sm:p-8 shadow-glass"
+          className="relative glass-strong rounded-3xl p-6 sm:p-8 shadow-glass login-card-glow"
         >
+          <div className="marching-ants" aria-hidden="true" />
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-xs font-semibold tracking-widest uppercase text-foreground/60">Correo</Label>
