@@ -336,10 +336,10 @@ const POSContent = () => {
                 </div>
               </div>
               <button
-                onClick={() => { setActiveTable(null); navigate('/pos'); }}
+                onClick={() => { setActiveTable(null); navigate('/tables'); }}
                 className="h-9 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-foreground/70 flex items-center gap-1"
                 data-testid="pos-leave-table-button"
-                title="Salir del contexto de mesa (no libera la mesa)"
+                title="Volver a la Sala (mantiene el ticket guardado en la mesa)"
               >
                 <X className="h-3.5 w-3.5" /> Salir
               </button>
