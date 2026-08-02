@@ -562,6 +562,71 @@ input::placeholder, textarea::placeholder { color: rgba(236, 236, 241, 0.30); }
   100% { transform: translateY(120vh); opacity: 0; }
 }
 
+
+/* ============================================================
+ * Login card — animated dashed red "marching ants" border
+ * with pulsing red glow that dims in/out
+ * ============================================================ */
+
+.login-card-glow {
+  animation: login-red-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes login-red-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 60, 80, 0.15),
+      0 0 22px rgba(255, 60, 80, 0.18),
+      0 0 60px rgba(255, 60, 80, 0.10),
+      0 25px 60px -20px rgba(0, 0, 0, 0.6);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(255, 60, 80, 0.55),
+      0 0 42px rgba(255, 60, 80, 0.45),
+      0 0 100px rgba(255, 60, 80, 0.28),
+      0 25px 60px -20px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Marching-ants dashed border chasing around the card */
+.marching-ants {
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  pointer-events: none;
+  padding: 2px;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 72, 92, 0.95) 0 12px,
+      transparent 12px 22px
+    );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: marching-ants-run 1.4s linear infinite, marching-ants-glow 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 72, 92, 0.85));
+  z-index: 1;
+}
+
+@keyframes marching-ants-run {
+  from { background-position: 0 0; }
+  to   { background-position: 34px 0; }
+}
+
+@keyframes marching-ants-glow {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card-glow, .marching-ants { animation: none; }
+  .marching-ants { opacity: 0.7; }
+}
+
 /* Vignette to focus attention */
 .deli-vignette {
   position: absolute;
