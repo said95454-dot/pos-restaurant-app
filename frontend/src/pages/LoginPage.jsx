@@ -51,7 +51,7 @@ const LoginPage = () => {
           >
             <div className="absolute inset-0 rounded-3xl conic-border" />
             <div className="absolute inset-1 rounded-[1.4rem] bg-ink-900 flex items-center justify-center">
-              <CrossedUtensils size={44} />
+              <CrossedUtensils size={64} />
             </div>
           </motion.div>
           <motion.h1

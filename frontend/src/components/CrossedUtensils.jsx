@@ -8,7 +8,7 @@ const CrossedUtensils = ({ size = 44, className = '' }) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 72 72"
+    viewBox="8 8 56 56"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={`crossed-utensils ${className}`}
@@ -33,14 +33,6 @@ const CrossedUtensils = ({ size = 44, className = '' }) => (
 
     {/* Ambient glow */}
     <circle cx="36" cy="36" r="30" fill="url(#cu-glow)" className="cu-halo" />
-
-    {/* Rotating pulsing ring */}
-    <g className="cu-ring">
-      <circle cx="36" cy="36" r="30" fill="none" stroke="#00E5FF" strokeWidth="0.8" strokeOpacity="0.55"
-              strokeDasharray="3 4" />
-      <circle cx="36" cy="36" r="30" fill="none" stroke="#C08A5C" strokeWidth="0.6" strokeOpacity="0.45"
-              strokeDasharray="1 6" strokeDashoffset="4" />
-    </g>
 
     {/* Fork — orange copper, tilted to the left */}
     <g transform="rotate(-30 36 36)" className="cu-item cu-item-fork">
