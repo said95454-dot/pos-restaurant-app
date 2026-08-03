@@ -8,7 +8,7 @@ const CrossedUtensils = ({ size = 44, className = '' }) => (
   <svg
     width={size}
     height={size}
-    viewBox="8 8 56 56"
+    viewBox="4 2 64 68"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={`crossed-utensils ${className}`}
@@ -66,10 +66,6 @@ const CrossedUtensils = ({ size = 44, className = '' }) => (
       <circle cx="36" cy="44" r="0.9" fill="#00171C" />
       <circle cx="36" cy="52" r="0.9" fill="#00171C" />
     </g>
-
-    {/* Center intersection spark */}
-    <circle cx="36" cy="36" r="2.4" fill="#FFFFFF" className="cu-spark" />
-    <circle cx="36" cy="36" r="1.2" fill="#00E5FF" className="cu-spark-core" />
   </svg>
 );
 
