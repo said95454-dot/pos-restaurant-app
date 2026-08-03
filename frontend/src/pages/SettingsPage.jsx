@@ -3,7 +3,8 @@ import { businessApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Upload, X, Save, LogOut, Smartphone, QrCode, ExternalLink, Copy, Volume2, VolumeX, Percent } from 'lucide-react';
+import { Loader2, Upload, X, Save, LogOut, Smartphone, QrCode, ExternalLink, Copy, Volume2, VolumeX, Percent, Languages } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -211,6 +212,9 @@ const SettingsPage = () => {
               </div>
             </div>
 
+            {/* Language selector */}
+            <LanguageCard />
+
             {/* Tips configuration */}
             <div className="glass rounded-3xl p-5" data-testid="tips-config-card">
               <div className="flex items-start gap-3 mb-4">
@@ -335,3 +339,42 @@ const Row = ({ label, value }) => (
 );
 
 export default SettingsPage;
+
+// Language selector card
+function LanguageCard() {
+  const { t, i18n } = useTranslation();
+  const current = i18n.language?.startsWith('en') ? 'en' : 'es';
+  const setLang = (l) => { i18n.changeLanguage(l); localStorage.setItem('pos_lang', l); };
+  return (
+    <div className="glass rounded-3xl p-5" data-testid="language-card">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="h-10 w-10 rounded-2xl bg-primary-500/15 border border-primary-500/30 text-primary-500 flex items-center justify-center flex-shrink-0">
+          <Languages className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="font-heading text-lg font-bold text-foreground">{t('settings.language')}</h3>
+          <p className="text-sm text-foreground/50">{t('settings.language_desc')}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setLang('es')}
+          className={`h-12 rounded-2xl border font-bold text-sm transition-all ${current === 'es' ? 'bg-primary-500/15 border-primary-500 text-primary-500 shadow-neon-cyan' : 'bg-white/5 border-white/10 text-foreground/70 hover:bg-white/10'}`}
+          data-testid="lang-es"
+        >
+          🇪🇸 {t('settings.spanish')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setLang('en')}
+          className={`h-12 rounded-2xl border font-bold text-sm transition-all ${current === 'en' ? 'bg-primary-500/15 border-primary-500 text-primary-500 shadow-neon-cyan' : 'bg-white/5 border-white/10 text-foreground/70 hover:bg-white/10'}`}
+          data-testid="lang-en"
+        >
+          🇺🇸 {t('settings.english')}
+        </button>
+      </div>
+    </div>
+  );
+}
+

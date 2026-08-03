@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { ShoppingCart, Package, ListOrdered, BarChart3, Wallet, Users, Settings, LogOut, Sparkles, Monitor, ChefHat, UtensilsCrossed, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,11 +32,23 @@ const NAV = [
 
 const AppLayout = () => {
   const { restaurant, cashier, logout, setActiveCashier } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  const NAV_ITEMS = [
+    { to: '/pos', label: t('nav.pos'), icon: ShoppingCart, testId: 'nav-pos' },
+    { to: '/tables', label: t('nav.tables'), icon: UtensilsCrossed, testId: 'nav-tables' },
+    { to: '/products', label: t('nav.products'), icon: Package, testId: 'nav-products' },
+    { to: '/orders', label: t('nav.orders'), icon: ListOrdered, testId: 'nav-orders' },
+    { to: '/stats', label: t('nav.stats'), icon: BarChart3, testId: 'nav-stats' },
+    { to: '/cash-register', label: t('nav.cash_register'), icon: Wallet, testId: 'nav-cash-register' },
+    { to: '/cashiers', label: t('nav.cashiers'), icon: Users, testId: 'nav-cashiers' },
+    { to: '/settings', label: t('nav.settings'), icon: Settings, testId: 'nav-settings' },
+  ];
 
   return (
     <div className="h-screen w-full flex flex-col md:flex-row bg-ink-950 overflow-hidden relative" data-testid="app-layout">
@@ -78,7 +91,7 @@ const AppLayout = () => {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV.map(({ to, label, icon: Icon, testId }) => {
+          {NAV_ITEMS.map(({ to, label, icon: Icon, testId }) => {
             const isActive = location.pathname === to;
             const needsCashier = to === '/pos' && !cashier;
             return (
@@ -120,7 +133,7 @@ const AppLayout = () => {
             data-testid="open-customer-display"
           >
             <Monitor className="h-4 w-4" />
-            <span>Pantalla del cliente</span>
+            <span>{t('nav.customer_display')}</span>
             <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-primary-500/20 border border-primary-500/40 rounded-full px-1.5 py-0.5">↗</span>
           </a>
           <a
@@ -131,7 +144,7 @@ const AppLayout = () => {
             data-testid="open-kitchen-display"
           >
             <ChefHat className="h-4 w-4" />
-            <span>Cocina (KDS)</span>
+            <span>{t('nav.kitchen_display')}</span>
             <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-amber/20 border border-amber/40 rounded-full px-1.5 py-0.5">↗</span>
           </a>
           {cashier && (
@@ -141,17 +154,17 @@ const AppLayout = () => {
               className="w-full justify-start gap-3 h-11 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 text-foreground/80 hover:text-foreground"
               data-testid="sidebar-cashier-logout"
             >
-              <LogOut className="h-4 w-4" /> Salir cajero
+              <LogOut className="h-4 w-4" /> {t('cashier.sign_out_cashier')}
             </Button>
           )}
           {cashier ? (
             <div
               className="w-full flex items-center gap-3 h-11 px-4 rounded-2xl bg-white/[0.02] border border-white/5 text-foreground/30 cursor-not-allowed"
               data-testid="sidebar-logout-locked"
-              title="Cierra la sesión del cajero primero para poder cerrar la sesión del restaurante"
+              title={t('logout_confirm.locked_tip')}
             >
-              <LogOut className="h-4 w-4" /> Cerrar sesión
-              <span className="ml-auto text-[9px] font-bold uppercase tracking-widest bg-amber/10 border border-amber/30 text-amber rounded-full px-1.5 py-0.5">Bloqueado</span>
+              <LogOut className="h-4 w-4" /> {t('common.logout')}
+              <span className="ml-auto text-[9px] font-bold uppercase tracking-widest bg-amber/10 border border-amber/30 text-amber rounded-full px-1.5 py-0.5">{t('logout_confirm.locked_badge')}</span>
             </div>
           ) : (
             <Button
@@ -160,7 +173,7 @@ const AppLayout = () => {
               className="w-full justify-start gap-3 h-11 rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
               data-testid="sidebar-logout-button"
             >
-              <LogOut className="h-4 w-4" /> Cerrar sesión
+              <LogOut className="h-4 w-4" /> {t('common.logout')}
             </Button>
           )}
         </div>
@@ -175,11 +188,11 @@ const AppLayout = () => {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <AlertDialogTitle className="font-heading text-xl font-black text-foreground">
-                ¿Cerrar sesión?
+                {t('logout_confirm.title')}
               </AlertDialogTitle>
             </div>
             <AlertDialogDescription className="text-foreground/60">
-              Vas a cerrar la sesión del restaurante. Tendrás que volver a iniciar sesión para acceder al POS. Cualquier ticket en curso ya está guardado.
+              {t('logout_confirm.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-2">
@@ -187,14 +200,14 @@ const AppLayout = () => {
               className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-foreground"
               data-testid="confirm-logout-cancel"
             >
-              Cancelar
+              {t('logout_confirm.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLogout}
               className="rounded-2xl bg-destructive hover:bg-destructive/90 text-white font-bold"
               data-testid="confirm-logout-confirm"
             >
-              Sí, cerrar sesión
+              {t('logout_confirm.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -224,7 +237,7 @@ const AppLayout = () => {
       {/* Bottom Tab Bar (mobile) */}
       <nav className="md:hidden glass-strong border-t border-white/5 safe-bottom relative z-20" data-testid="mobile-bottom-nav">
         <div className="flex items-stretch justify-around overflow-x-auto no-scrollbar">
-          {NAV.slice(0, 5).map(({ to, label, icon: Icon, testId }) => {
+          {NAV_ITEMS.slice(0, 5).map(({ to, label, icon: Icon, testId }) => {
             const isActive = location.pathname === to;
             return (
               <NavLink
