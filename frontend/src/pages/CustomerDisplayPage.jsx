@@ -169,7 +169,12 @@ const CartScreen = ({ cart, business }) => {
   );
 };
 
-const ThankYouScreen = ({ order, business }) => (
+const ThankYouScreen = ({ order, business }) => {
+  const isCash = order?.payment_method === 'cash';
+  const changeDue = Number(order?.change || 0);
+  const amountReceived = Number(order?.amount_received || 0);
+  const showChangeHero = isCash && changeDue > 0;
+  return (
   <motion.div
     initial={{ opacity: 0, scale: 0.94 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -178,42 +183,80 @@ const ThankYouScreen = ({ order, business }) => (
   >
     {/* radial glow */}
     <div className="absolute inset-0 pointer-events-none">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-success/10 blur-3xl animate-pulse" />
+      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full blur-3xl animate-pulse ${showChangeHero ? 'bg-amber/15' : 'bg-success/10'}`} />
     </div>
 
     <motion.div
       initial={{ scale: 0, rotate: -180 }}
       animate={{ scale: 1, rotate: 0 }}
       transition={{ type: 'spring', stiffness: 240, damping: 14 }}
-      className="relative z-10 h-28 w-28 rounded-full bg-success/15 border-2 border-success flex items-center justify-center mb-6 shadow-[0_0_60px_rgba(0,255,163,0.4)]"
+      className="relative z-10 h-24 w-24 rounded-full bg-success/15 border-2 border-success flex items-center justify-center mb-5 shadow-[0_0_60px_rgba(0,255,163,0.4)]"
     >
-      <CheckCircle2 className="h-16 w-16 text-success" strokeWidth={2.5} />
+      <CheckCircle2 className="h-14 w-14 text-success" strokeWidth={2.5} />
     </motion.div>
 
     <motion.h1
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="relative z-10 font-heading text-5xl md:text-6xl lg:text-7xl font-black text-foreground mb-4"
+      className="relative z-10 font-heading text-4xl md:text-5xl font-black text-foreground mb-2"
     >
-      ¡Gracias! <Heart className="inline h-10 w-10 md:h-12 md:w-12 text-amber fill-amber" />
+      ¡Gracias! <Heart className="inline h-8 w-8 md:h-10 md:w-10 text-amber fill-amber" />
     </motion.h1>
 
-    <motion.p
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.35 }}
-      className="relative z-10 text-lg md:text-xl text-foreground/70 mb-4"
+    {/* CAMBIO HERO — shown huge for cash payments with change > 0 */}
+    {showChangeHero && (
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ delay: 0.35, type: 'spring', stiffness: 260, damping: 18 }}
+        className="relative z-10 mt-4 mb-6 px-10 py-6 rounded-3xl bg-gradient-to-br from-amber/20 to-amber/5 border-2 border-amber/50 shadow-[0_0_80px_rgba(255,193,7,0.35)]"
+        data-testid="thankyou-change-hero"
+      >
+        <p className="text-xs md:text-sm font-bold uppercase tracking-[0.3em] text-amber/80 mb-2">Tu cambio</p>
+        <p className="font-mono font-black text-amber text-7xl md:text-8xl lg:text-9xl leading-none drop-shadow-[0_0_30px_rgba(255,193,7,0.7)]" data-testid="thankyou-change-amount">
+          {formatMoney(changeDue)}
+        </p>
+      </motion.div>
+    )}
+
+    {/* Payment summary row — always shown */}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.45 }}
+      className="relative z-10 mt-2 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl w-full"
+      data-testid="thankyou-summary"
     >
-      Tu pago de <span className="font-mono font-black text-primary-500">{formatMoney(order?.total)}</span> fue registrado
-    </motion.p>
+      <div className="glass rounded-2xl p-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-1">Total</p>
+        <p className="font-mono font-black text-2xl text-primary-500 text-glow-cyan" data-testid="thankyou-total">{formatMoney(order?.total)}</p>
+      </div>
+      {isCash ? (
+        <>
+          <div className="glass rounded-2xl p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-1">Recibido</p>
+            <p className="font-mono font-black text-2xl text-foreground" data-testid="thankyou-received">{formatMoney(amountReceived)}</p>
+          </div>
+          <div className={`rounded-2xl p-4 ${changeDue > 0 ? 'bg-amber/10 border border-amber/40' : 'glass'}`}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-amber/80 mb-1">Cambio</p>
+            <p className={`font-mono font-black text-2xl ${changeDue > 0 ? 'text-amber' : 'text-foreground/60'}`}>{formatMoney(changeDue)}</p>
+          </div>
+        </>
+      ) : (
+        <div className="glass rounded-2xl p-4 sm:col-span-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-1">Método de pago</p>
+          <p className="font-bold text-lg text-foreground">{PAYMENT_LABELS[order?.payment_method] || 'Confirmado'}</p>
+        </div>
+      )}
+    </motion.div>
 
     {(order?.tip || 0) > 0 && (
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="relative z-10 inline-flex items-center gap-2 bg-success/10 border border-success/40 text-success text-sm font-bold rounded-full px-4 py-2 mb-6"
+        transition={{ delay: 0.55 }}
+        className="relative z-10 inline-flex items-center gap-2 bg-success/10 border border-success/40 text-success text-sm font-bold rounded-full px-4 py-2 mb-4"
         data-testid="thankyou-tip"
       >
         <Heart className="h-4 w-4" /> Propina de {formatMoney(order.tip)} — ¡mil gracias!
@@ -225,20 +268,21 @@ const ThankYouScreen = ({ order, business }) => (
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="relative z-10 mt-4 glass rounded-3xl p-5 flex items-center gap-4"
+        className="relative z-10 mt-2 glass rounded-3xl p-4 flex items-center gap-4"
         data-testid="thankyou-qr"
       >
         <div className="bg-white p-2 rounded-xl">
-          <QRCodeSVG value={business.qr_url} size={100} level="M" />
+          <QRCodeSVG value={business.qr_url} size={80} level="M" />
         </div>
         <div className="text-left">
           <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Escanea y</p>
-          <p className="font-heading text-lg font-bold text-foreground">{business.qr_label || 'Síguenos'}</p>
+          <p className="font-heading text-base font-bold text-foreground">{business.qr_label || 'Síguenos'}</p>
         </div>
       </motion.div>
     )}
   </motion.div>
-);
+  );
+};
 
 const CustomerDisplayPage = () => {
   const { isAuthenticated } = useAuth();
@@ -265,7 +309,6 @@ const CustomerDisplayPage = () => {
     const offCart = onRealtime('cart.update', (data) => {
       // If a new non-empty cart arrives during thank-you window, snap back to live preview
       if (thankTimerRef.current && (data?.items || []).length > 0) {
-        clearTimeout(thankTimerRef.current);
         thankTimerRef.current = null;
         setLastOrder(null);
       }
@@ -276,15 +319,16 @@ const CustomerDisplayPage = () => {
         idleTimerRef.current = setTimeout(() => setCart(null), 90000);
       }
     });
-    const offClear = onRealtime('cart.clear', () => setCart(null));
+    const offClear = onRealtime('cart.clear', () => {
+      // Don't dismiss the thank-you screen when POS clears its cart after checkout
+      if (thankTimerRef.current) return;
+      setCart(null);
+    });
     const offOrder = onRealtime('order.created', (order) => {
       setLastOrder(order);
-      if (thankTimerRef.current) clearTimeout(thankTimerRef.current);
-      thankTimerRef.current = setTimeout(() => {
-        setLastOrder(null);
-        setCart(null);
-        thankTimerRef.current = null;
-      }, 10000);
+      // Keep the thank-you screen visible until the next sale begins (cart.update with items).
+      // Flag stays truthy so cart.update / cart.clear won't dismiss it prematurely.
+      thankTimerRef.current = true;
     });
     return () => { offCart(); offClear(); offOrder(); };
   }, [isAuthenticated]);

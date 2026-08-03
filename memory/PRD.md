@@ -12,6 +12,19 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
    - Inputs con texto visible
    - Editor de imagen al agregar productos
 
+
+## v2.3 (Feb 2026) — Cambio en Pantalla del Cliente
+
+### Nuevo
+- 💵 **Pantalla del Cliente ahora muestra el CAMBIO en grande**:
+  - Al cerrar una venta en efectivo con cambio > 0, la Pantalla del Cliente (`/display`) muestra un panel enorme en color ámbar con el monto de cambio a devolver.
+  - Siempre muestra el resumen final: **Total pagado · Recibido · Cambio** (para pagos en efectivo) o **Total · Método de pago** (para tarjeta/transferencia).
+  - La pantalla de "Gracias" **permanece visible** hasta que inicie la siguiente venta (ya no se cierra a los 10s). Al recibir un nuevo `cart.update` con items > 0, hace snap-back al preview en vivo.
+- 🔌 **Backend WS event `order.created`** ahora incluye `amount_received` y `change`.
+- 📶 **Modo offline**: el POS también emite `order.created` localmente al finalizar una venta offline, así el display muestra el cambio incluso sin backend.
+
+Files: `/app/backend/server.py`, `/app/frontend/src/pages/POSPage.jsx`, `/app/frontend/src/pages/CustomerDisplayPage.jsx`.
+
 ## Estado Actual (Enero 2026) — v2.2
 
 ### Implementado y Validado ✅

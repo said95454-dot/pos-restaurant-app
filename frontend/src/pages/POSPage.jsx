@@ -249,6 +249,20 @@ const POSContent = () => {
       toast.success(message);
       playCheckout();
       setLastOrder(orderForReceipt);
+      // Broadcast the final order to the Customer Display so it shows "Change Due"
+      // For online orders, the backend also emits order.created — this is redundant but harmless.
+      // For offline orders, this is the only way the display learns about the sale.
+      sendRealtime({ type: 'order.created', data: {
+        id: orderForReceipt.id,
+        customer_name: orderForReceipt.customer_name,
+        subtotal: orderForReceipt.subtotal,
+        tip: orderForReceipt.tip,
+        total: orderForReceipt.total,
+        payment_method: orderForReceipt.payment_method,
+        amount_received: orderForReceipt.amount_received,
+        change: orderForReceipt.change,
+        cashier_name: orderForReceipt.cashier_name,
+      }});
       setCart([]); setCustomer(''); setAmountReceived(''); setShowCheckout(false); setShowCart(false);
       if (autoPrint) printOrder();
       // Auto-close the table after successful checkout — sends it back to /tables free

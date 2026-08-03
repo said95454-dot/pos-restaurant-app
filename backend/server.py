@@ -699,6 +699,8 @@ async def create_order(order: OrderCreate, restaurant: dict = Depends(get_curren
         "tip": new_order.tip,
         "subtotal": new_order.subtotal,
         "payment_method": new_order.payment_method,
+        "amount_received": new_order.amount_received,
+        "change": new_order.change,
         "cashier_name": new_order.cashier_name,
         "items_count": len(new_order.items),
         "created_at": new_order.created_at.isoformat() if hasattr(new_order.created_at, 'isoformat') else str(new_order.created_at),
