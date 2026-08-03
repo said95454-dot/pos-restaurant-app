@@ -488,6 +488,30 @@ const POSContent = () => {
             <DialogTitle className="font-heading text-2xl">{showOptionsFor?.name}</DialogTitle>
             <DialogDescription className="text-foreground/50 text-sm">Selecciona las opciones</DialogDescription>
           </DialogHeader>
+          {(showOptionsFor?.custom_options?.length || 0) > 0 && (
+            <div className="flex items-center gap-2 mt-1 mb-1">
+              <button
+                type="button"
+                onClick={() => setTempOptions(showOptionsFor.custom_options || [])}
+                className={`flex-1 h-10 rounded-xl border font-bold text-xs uppercase tracking-wider transition-all ${
+                  tempOptions.length === (showOptionsFor.custom_options?.length || 0)
+                    ? 'bg-success text-ink-950 border-success shadow-[0_0_18px_rgba(0,255,163,0.35)]'
+                    : 'bg-success/10 border-success/40 text-success hover:bg-success/20'
+                }`}
+                data-testid="options-select-all"
+              >
+                ✓ Con todo
+              </button>
+              <button
+                type="button"
+                onClick={() => setTempOptions([])}
+                className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-foreground/70 font-bold text-xs uppercase tracking-wider transition-all"
+                data-testid="options-clear-all"
+              >
+                Ninguno
+              </button>
+            </div>
+          )}
           <div className="space-y-2 my-2 max-h-72 overflow-y-auto">
             {showOptionsFor?.custom_options?.map(opt => {
               const checked = tempOptions.includes(opt);
