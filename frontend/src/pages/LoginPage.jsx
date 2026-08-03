@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import FuturisticFlame from '@/components/FuturisticFlame';
+import CrossedUtensils from '@/components/CrossedUtensils';
 import Aurora from '@/components/Aurora';
 
 const LoginPage = () => {
@@ -51,7 +51,7 @@ const LoginPage = () => {
           >
             <div className="absolute inset-0 rounded-3xl conic-border" />
             <div className="absolute inset-1 rounded-[1.4rem] bg-ink-900 flex items-center justify-center">
-              <FuturisticFlame size={40} />
+              <CrossedUtensils size={44} />
             </div>
           </motion.div>
           <motion.h1

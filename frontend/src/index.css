@@ -678,6 +678,72 @@ input::placeholder, textarea::placeholder { color: rgba(236, 236, 241, 0.30); }
   .futuristic-flame .flame-spark { animation: none; }
 }
 
+/* ============================================================
+ * Crossed utensils logo — pulsing neon ring + subtle spark
+ * ============================================================ */
+
+.crossed-utensils {
+  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.55))
+          drop-shadow(0 0 8px rgba(192, 138, 92, 0.5));
+}
+
+.crossed-utensils .cu-halo {
+  transform-origin: 36px 36px;
+  animation: cu-halo-pulse 3.2s ease-in-out infinite;
+}
+
+.crossed-utensils .cu-ring {
+  transform-origin: 36px 36px;
+  animation: cu-ring-spin 14s linear infinite, cu-ring-pulse 2.4s ease-in-out infinite;
+}
+
+.crossed-utensils .cu-item-knife {
+  transform-origin: 36px 36px;
+  animation: cu-item-glow 3s ease-in-out infinite;
+}
+
+.crossed-utensils .cu-item-fork {
+  transform-origin: 36px 36px;
+  animation: cu-item-glow 3s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.crossed-utensils .cu-spark {
+  transform-origin: 36px 36px;
+  animation: cu-spark-pulse 1.8s ease-in-out infinite;
+}
+.crossed-utensils .cu-spark-core {
+  transform-origin: 36px 36px;
+  animation: cu-spark-pulse 1.8s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+@keyframes cu-halo-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.12); }
+}
+@keyframes cu-ring-spin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+@keyframes cu-ring-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes cu-item-glow {
+  0%, 100% { filter: brightness(1);    }
+  50%      { filter: brightness(1.25); }
+}
+@keyframes cu-spark-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.6); }
+  50%      { opacity: 1;    transform: scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crossed-utensils * { animation: none !important; }
+}
+
+
 
 /* Vignette to focus attention */
 .deli-vignette {
