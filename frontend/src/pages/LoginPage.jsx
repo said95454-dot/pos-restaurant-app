@@ -47,11 +47,11 @@ const LoginPage = () => {
             initial={{ scale: 0.6, rotate: -20, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-flex items-center justify-center h-20 w-20 rounded-3xl mb-5 relative float"
+            className="inline-flex items-center justify-center h-32 w-32 rounded-[2rem] mb-5 relative float"
           >
-            <div className="absolute inset-0 rounded-3xl conic-border" />
-            <div className="absolute inset-1 rounded-[1.4rem] bg-ink-900 flex items-center justify-center">
-              <CrossedUtensils size={64} />
+            <div className="absolute inset-0 rounded-[2rem] conic-border" />
+            <div className="absolute inset-1 rounded-[1.8rem] bg-ink-900 flex items-center justify-center">
+              <CrossedUtensils size={92} />
             </div>
           </motion.div>
           <motion.h1
