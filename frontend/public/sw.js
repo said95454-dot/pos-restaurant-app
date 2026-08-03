@@ -3,7 +3,7 @@
 // Caches the app shell so it loads offline. API requests are NEVER cached
 // (we want fresh data) — they fail gracefully so the app can queue them.
 
-const CACHE = 'pos-shell-v3';
+const CACHE = 'pos-shell-v4';
 const SHELL = ['/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {
