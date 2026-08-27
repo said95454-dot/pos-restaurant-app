@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChefHat, Clock, CheckCircle2, Flame, PlayCircle, Undo2, ArrowRight, Bell } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtime, onRealtime } from '@/utils/useRealtime';
 import { Button } from '@/components/ui/button';
@@ -10,11 +11,11 @@ import Aurora from '@/components/Aurora';
 
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const STATUS_META = {
-  new:        { label: 'Nueva',          key: 'amber',   icon: Bell,        next: 'preparing', nextLabel: 'Iniciar' },
-  preparing:  { label: 'En preparación', key: 'cyan',    icon: Flame,       next: 'ready',     nextLabel: 'Lista' },
-  ready:      { label: 'Lista',          key: 'success', icon: CheckCircle2, next: 'completed', nextLabel: 'Entregar' },
-};
+const statusMeta = (t) => ({
+  new:        { label: t('kds.new'),          key: 'amber',   icon: Bell,        next: 'preparing', nextLabel: t('kds.start') },
+  preparing:  { label: t('kds.preparing'),    key: 'cyan',    icon: Flame,       next: 'ready',     nextLabel: t('kds.ready_btn') },
+  ready:      { label: t('kds.ready'),        key: 'success', icon: CheckCircle2, next: 'completed', nextLabel: t('kds.deliver') },
+});
 
 // Static Tailwind class maps (JIT-friendly)
 const COLORS = {
@@ -80,13 +81,14 @@ const elapsedMinutes = (isoDate) => {
 };
 
 const OrderCard = ({ order, onAdvance, onRegress, index }) => {
-  const meta = STATUS_META[order.kds_status] || STATUS_META.new;
+  const { t } = useTranslation();
+  const meta = statusMeta(t)[order.kds_status] || statusMeta(t).new;
   const c = COLORS[meta.key];
   const Icon = meta.icon;
   const [, forceTick] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => forceTick(v => v + 1), 15000);
-    return () => clearInterval(t);
+    const iv = setInterval(() => forceTick(v => v + 1), 15000);
+    return () => clearInterval(iv);
   }, []);
   const mins = elapsedMinutes(order.created_at);
   const isStale = mins >= 15 && order.kds_status !== 'ready';
@@ -143,7 +145,7 @@ const OrderCard = ({ order, onAdvance, onRegress, index }) => {
             type="button"
             onClick={() => onRegress(order)}
             className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-foreground/50 hover:text-foreground flex items-center justify-center transition"
-            title="Regresar estado"
+            title={t('common.back')}
             data-testid={`kds-regress-${order.id}`}
           >
             <Undo2 className="h-4 w-4" />
@@ -162,6 +164,7 @@ const OrderCard = ({ order, onAdvance, onRegress, index }) => {
 };
 
 const Column = ({ title, status, orders, onAdvance, onRegress, colorKey }) => {
+  const { t } = useTranslation();
   const c = COLORS[colorKey];
   return (
     <div className="flex-1 min-w-0 flex flex-col" data-testid={`kds-column-${status}`}>
@@ -177,7 +180,7 @@ const Column = ({ title, status, orders, onAdvance, onRegress, colorKey }) => {
       <div className="flex-1 overflow-y-auto pr-1 space-y-3">
         {orders.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center text-foreground/30 text-sm">
-            Sin órdenes
+            {t('kds.no_orders')}
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
@@ -192,6 +195,7 @@ const Column = ({ title, status, orders, onAdvance, onRegress, colorKey }) => {
 };
 
 const KitchenDisplayPage = () => {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   useRealtime();
   const [orders, setOrders] = useState([]);
@@ -231,7 +235,7 @@ const KitchenDisplayPage = () => {
       load();
       if (soundOn && data?.id && !knownIdsRef.current.has(data.id)) {
         beep();
-        toast.success(`Orden #${(data.id || '').slice(0, 6).toUpperCase()} — ${data.customer_name || 'Sin nombre'}`, { id: `kds-${data.id}` });
+        toast.success(`#${(data.id || '').slice(0, 6).toUpperCase()} — ${data.customer_name || ''}`, { id: `kds-${data.id}` });
       }
     });
     const offStatus = onRealtime('order.kds_status', () => load());
@@ -245,13 +249,13 @@ const KitchenDisplayPage = () => {
   }), [orders]);
 
   const advance = async (order) => {
-    const next = STATUS_META[order.kds_status || 'new']?.next;
+    const next = statusMeta(t)[order.kds_status || 'new']?.next;
     if (!next) return;
     // Optimistic update
     setOrders(prev => next === 'completed' ? prev.filter(o => o.id !== order.id) : prev.map(o => o.id === order.id ? { ...o, kds_status: next } : o));
     try {
       await axios.put(`${API_URL}/orders/${order.id}/kds-status`, { kds_status: next }, { headers: authHeaders() });
-    } catch { toast.error('No se pudo actualizar'); load(); }
+    } catch { toast.error(t('common.error')); load(); }
   };
 
   const regress = async (order) => {
@@ -261,7 +265,7 @@ const KitchenDisplayPage = () => {
     setOrders(cur => cur.map(o => o.id === order.id ? { ...o, kds_status: prev } : o));
     try {
       await axios.put(`${API_URL}/orders/${order.id}/kds-status`, { kds_status: prev }, { headers: authHeaders() });
-    } catch { toast.error('No se pudo actualizar'); load(); }
+    } catch { toast.error(t('common.error')); load(); }
   };
 
   return (
@@ -273,8 +277,8 @@ const KitchenDisplayPage = () => {
             <ChefHat className="h-6 w-6" />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-amber">Kitchen Display System</p>
-            <h1 className="font-heading text-2xl md:text-3xl font-black text-foreground">Comandas de Cocina</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-amber">{t('kds.subtitle')}</p>
+            <h1 className="font-heading text-2xl md:text-3xl font-black text-foreground">{t('kds.title')}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -283,25 +287,25 @@ const KitchenDisplayPage = () => {
             onClick={() => setSoundOn(s => !s)}
             className={`inline-flex items-center gap-2 h-10 px-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition ${soundOn ? 'bg-primary-500/15 border-primary-500/40 text-primary-500' : 'bg-white/5 border-white/10 text-foreground/50'}`}
             data-testid="kds-sound-toggle"
-            title="Sonido de nueva orden"
+            title={t('kds.sound_on')}
           >
             {soundOn ? <PlayCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
-            {soundOn ? 'Sonido ON' : 'Sonido OFF'}
+            {soundOn ? t('kds.sound_on') : t('kds.sound_off')}
           </button>
           <div className="hidden md:flex items-center gap-1 h-10 px-3 rounded-xl border border-white/10 bg-white/5 text-xs font-bold text-foreground/60">
-            <span className="font-mono">{orders.length}</span> pendientes
+            <span className="font-mono">{orders.length}</span> {t('kds.pending')}
           </div>
         </div>
       </header>
 
       <main className="relative z-10 flex-1 overflow-hidden p-4 md:p-6">
         {loading ? (
-          <div className="h-full flex items-center justify-center text-foreground/40">Cargando…</div>
+          <div className="h-full flex items-center justify-center text-foreground/40">{t('common.loading')}</div>
         ) : (
           <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            <Column title="Nuevas" status="new" orders={byStatus.new} onAdvance={advance} onRegress={regress} colorKey="amber" />
-            <Column title="En preparación" status="preparing" orders={byStatus.preparing} onAdvance={advance} onRegress={regress} colorKey="cyan" />
-            <Column title="Listas" status="ready" orders={byStatus.ready} onAdvance={advance} onRegress={regress} colorKey="success" />
+            <Column title={t('kds.new')} status="new" orders={byStatus.new} onAdvance={advance} onRegress={regress} colorKey="amber" />
+            <Column title={t('kds.preparing')} status="preparing" orders={byStatus.preparing} onAdvance={advance} onRegress={regress} colorKey="cyan" />
+            <Column title={t('kds.ready')} status="ready" orders={byStatus.ready} onAdvance={advance} onRegress={regress} colorKey="success" />
           </div>
         )}
       </main>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { productsApi, ordersApi, businessApi, tablesApi } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const POSPage = () => {
 };
 
 const POSContent = () => {
+  const { t } = useTranslation();
   const { restaurant, cashier } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -57,7 +59,7 @@ const POSContent = () => {
       const [p, b] = await Promise.all([productsApi.list(), businessApi.get()]);
       setProducts(p);
       setBusiness(b);
-    } catch { toast.error('No se pudieron cargar los productos'); }
+    } catch { toast.error(t('common.error')); }
     finally { setLoading(false); }
   };
   useEffect(() => { loadProducts(); }, []);
@@ -68,11 +70,11 @@ const POSContent = () => {
     let cancelled = false;
     tablesApi.list().then((rows) => {
       if (cancelled) return;
-      const t = rows.find(r => r.id === tableIdParam);
-      if (t) {
-        setActiveTable(t);
+      const tbl = rows.find(r => r.id === tableIdParam);
+      if (tbl) {
+        setActiveTable(tbl);
         // Hydrate cart from existing open_ticket so the cashier can continue/add/charge
-        const ticket = t.open_ticket;
+        const ticket = tbl.open_ticket;
         if (ticket && Array.isArray(ticket.items) && ticket.items.length > 0) {
           const hydrated = ticket.items.map((it, idx) => ({
             id: `${it.product_id || 'legacy'}-${idx}-${Date.now()}`,
@@ -88,7 +90,7 @@ const POSContent = () => {
             subtotal: it.subtotal,
           }));
           setCart(hydrated);
-          toast.info(`Ticket cargado — ${ticket.item_count} artículo(s), $${Number(ticket.subtotal || 0).toFixed(2)}`, { id: `hydrate-${t.id}` });
+          toast.info(t('pos.ticket_loaded', { count: ticket.item_count, total: Number(ticket.subtotal || 0).toFixed(2) }), { id: `hydrate-${tbl.id}` });
         }
       }
     }).catch(() => {});
@@ -158,12 +160,12 @@ const POSContent = () => {
     };
     // Send after tiny debounce — but only when NOT working on a table
     // (table orders shouldn't be mirrored on the customer display, only walk-in/counter sales do)
-    const t = !activeTable?.id ? setTimeout(() => {
+    const cartTimer = !activeTable?.id ? setTimeout(() => {
       sendRealtime({ type: 'cart.update', data: preview });
     }, 120) : null;
 
     // Also persist the ticket on the table so /tables shows a live preview
-    const tt = activeTable?.id ? setTimeout(() => {
+    const tableTimer = activeTable?.id ? setTimeout(() => {
       tablesApi.updateTicket(activeTable.id, {
         items: cart.map(it => ({
           product_id: it.product.id,
@@ -179,7 +181,7 @@ const POSContent = () => {
       }).catch(() => {});
     }, 400) : null;
 
-    return () => { if (t) clearTimeout(t); if (tt) clearTimeout(tt); };
+    return () => { if (cartTimer) clearTimeout(cartTimer); if (tableTimer) clearTimeout(tableTimer); };
   }, [cart, subtotal, tip, total, customer, paymentMethod, amountReceived, cashier, showCheckout, activeTable]);
 
   // When entering table mode mid-session, clear whatever the customer display is showing
@@ -222,9 +224,9 @@ const POSContent = () => {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
-    if (!customer.trim()) { toast.error('Ingresa el nombre del cliente'); return; }
+    if (!customer.trim()) { toast.error(t('checkout.customer_name')); return; }
     if (paymentMethod === 'cash') {
-      if ((parseFloat(amountReceived) || 0) < total) { toast.error('El monto recibido es menor al total'); return; }
+      if ((parseFloat(amountReceived) || 0) < total) { toast.error(t('checkout.amount_received')); return; }
     }
     setSubmitting(true);
     const orderPayload = {
@@ -288,10 +290,10 @@ const POSContent = () => {
           created_at: queued.createdAt,
           offline: true,
         };
-        finishLocal(offlineOrder, `Venta guardada offline (${formatMoney(total)})`);
+        finishLocal(offlineOrder, t('checkout.sale_offline', { total: total.toFixed(2) }));
       } else {
         const order = await ordersApi.create(orderPayload);
-        finishLocal(order, `Venta registrada: ${formatMoney(total)}`);
+        finishLocal(order, t('checkout.sale_registered', { total: total.toFixed(2) }));
       }
     } catch (e) {
       // Network error after passing the online check → queue locally
@@ -307,7 +309,7 @@ const POSContent = () => {
             created_at: queued.createdAt,
             offline: true,
           };
-          finishLocal(offlineOrder, `Venta guardada offline (${formatMoney(total)})`);
+          finishLocal(offlineOrder, t('checkout.sale_offline', { total: total.toFixed(2) }));
         } catch (qe) {
           toast.error('No se pudo registrar ni encolar la venta');
         }
@@ -323,8 +325,8 @@ const POSContent = () => {
   };
 
   const categories = [
-    { id: 'comida', label: 'Comida', icon: Utensils },
-    { id: 'bebida', label: 'Bebida', icon: Coffee },
+    { id: 'comida', label: t('pos.food'), icon: Utensils },
+    { id: 'bebida', label: t('pos.drink'), icon: Coffee },
   ];
   const itemCount = cart.reduce((s, it) => s + it.quantity, 0);
 
@@ -359,8 +361,8 @@ const POSContent = () => {
                   <UtensilsCrossed className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber">Mesa activa</p>
-                  <p className="font-heading text-lg font-black text-foreground leading-none">Mesa {activeTable.number} · {activeTable.capacity} personas{activeTable.waiter_name ? ` · Mesero: ${activeTable.waiter_name}` : ''}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber">{t('pos.active_table')}</p>
+                  <p className="font-heading text-lg font-black text-foreground leading-none">{t('tables.table')} {activeTable.number} · {activeTable.capacity} {t('tables.people')}{activeTable.waiter_name ? ` · ${t('tables.waiter')}: ${activeTable.waiter_name}` : ''}</p>
                 </div>
               </div>
               <button
@@ -369,13 +371,13 @@ const POSContent = () => {
                 data-testid="pos-leave-table-button"
                 title="Volver a la Sala (mantiene el ticket guardado en la mesa)"
               >
-                <X className="h-3.5 w-3.5" /> Salir
+                <X className="h-3.5 w-3.5" /> {t('pos.exit')}
               </button>
             </motion.div>
           )}
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Punto de Venta</p>
+              <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">{t('pos.title')}</p>
               <h1 className="font-heading text-2xl font-black text-gradient truncate" data-testid="pos-restaurant-name">
                 {business?.name || restaurant?.restaurant_name}
               </h1>
@@ -386,7 +388,7 @@ const POSContent = () => {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar producto…"
+                  placeholder={t('common.search')}
                   className="pl-11 h-11 rounded-full bg-ink-800/60 border border-white/5 focus:border-primary-500 text-foreground placeholder:text-foreground/30"
                   data-testid="pos-search-input"
                 />
@@ -480,7 +482,7 @@ const POSContent = () => {
             >
               <span className="flex items-center gap-3 font-bold">
                 <span className="bg-ink-950 text-primary-500 rounded-full h-8 w-8 flex items-center justify-center text-sm font-black">{itemCount}</span>
-                Ver carrito
+                Ver {t('pos.cart').toLowerCase()}
               </span>
               <span className="font-heading font-black text-xl"><AnimatedNumber value={total} format={(v) => formatMoney(v)} /></span>
             </button>
@@ -492,8 +494,8 @@ const POSContent = () => {
       <Dialog open={showCart} onOpenChange={setShowCart}>
         <DialogContent className="lg:hidden p-0 max-w-full h-[85vh] rounded-t-3xl rounded-b-none top-auto bottom-0 translate-y-0 bg-ink-900 border-white/5" data-testid="mobile-cart-drawer">
           <DialogHeader className="sr-only">
-            <DialogTitle>Carrito</DialogTitle>
-            <DialogDescription>Lista de productos a cobrar</DialogDescription>
+            <DialogTitle>{t('pos.cart')}</DialogTitle>
+            <DialogDescription>{t('pos.current_order')}</DialogDescription>
           </DialogHeader>
           <CartContent cart={cart} updateQty={updateQty} removeItem={removeItem} clearCart={clearCart} total={total} onCheckout={() => { setShowCart(false); setShowCheckout(true); }} cashier={cashier} />
         </DialogContent>
@@ -504,7 +506,7 @@ const POSContent = () => {
         <DialogContent className="rounded-3xl max-w-md bg-ink-900 border-white/5" data-testid="product-options-modal">
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">{showOptionsFor?.name}</DialogTitle>
-            <DialogDescription className="text-foreground/50 text-sm">Selecciona las opciones</DialogDescription>
+            <DialogDescription className="text-foreground/50 text-sm">{t('pos.select_options')}</DialogDescription>
           </DialogHeader>
           {(showOptionsFor?.custom_options?.length || 0) > 0 && (
             <div className="flex items-center gap-2 mt-1 mb-1">
@@ -518,7 +520,7 @@ const POSContent = () => {
                 className={`flex-1 h-10 rounded-xl border font-bold text-xs uppercase tracking-wider transition-all bg-success/10 border-success/40 text-success hover:bg-success/20`}
                 data-testid="options-select-all"
               >
-                ✓ Con todo
+                ✓ {t('pos.with_everything')}
               </button>
               <button
                 type="button"
@@ -526,7 +528,7 @@ const POSContent = () => {
                 className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-foreground/70 font-bold text-xs uppercase tracking-wider transition-all"
                 data-testid="options-clear-all"
               >
-                Ninguno
+                {t('pos.none')}
               </button>
             </div>
           )}
@@ -550,8 +552,8 @@ const POSContent = () => {
             })}
           </div>
           <DialogFooter className="flex-row gap-2 sm:gap-2">
-            <Button variant="outline" className="flex-1 h-12 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10" onClick={() => setShowOptionsFor(null)}>Cancelar</Button>
-            <Button className="flex-1 h-12 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan" onClick={confirmOptions} data-testid="confirm-options-button">Agregar</Button>
+            <Button variant="outline" className="flex-1 h-12 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10" onClick={() => setShowOptionsFor(null)}>{t('common.cancel')}</Button>
+            <Button className="flex-1 h-12 rounded-2xl bg-primary-500 hover:bg-primary-400 text-ink-950 font-bold shadow-neon-cyan" onClick={confirmOptions} data-testid="confirm-options-button">{t('pos.options_add')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -560,29 +562,29 @@ const POSContent = () => {
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
         <DialogContent className="rounded-3xl max-w-md bg-ink-900 border-white/5" data-testid="checkout-modal">
           <DialogHeader>
-            <DialogTitle className="font-heading text-2xl">Cobrar venta</DialogTitle>
+            <DialogTitle className="font-heading text-2xl">{t('checkout.title')} {t('pos.title').toLowerCase()}</DialogTitle>
             <DialogDescription className="text-foreground/50 text-sm">
-              Total: <span className="font-mono font-bold text-primary-500 text-glow-cyan">{formatMoney(total)}</span>
+              {t('common.total')}: <span className="font-mono font-bold text-primary-500 text-glow-cyan">{formatMoney(total)}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 my-2">
             <div className="space-y-2">
-              <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Cliente</label>
+              <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">{t('checkout.customer_name').split(' ')[0]}</label>
               <Input
                 value={customer}
                 onChange={(e) => setCustomer(e.target.value)}
-                placeholder="Nombre del cliente"
+                placeholder={t('checkout.customer_name')}
                 className="h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500"
                 data-testid="checkout-customer-input"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Método de pago</label>
+              <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">{t('checkout.payment_method')}</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'cash', label: 'Efectivo', icon: Banknote },
-                  { id: 'card', label: 'Tarjeta', icon: CreditCard },
-                  { id: 'transfer', label: 'Transfer.', icon: ArrowRightLeft },
+                  { id: 'cash', label: t('checkout.cash'), icon: Banknote },
+                  { id: 'card', label: t('checkout.card'), icon: CreditCard },
+                  { id: 'transfer', label: t('checkout.transfer'), icon: ArrowRightLeft },
                 ].map(pm => {
                   const Icon = pm.icon;
                   const active = paymentMethod === pm.id;
@@ -606,7 +608,7 @@ const POSContent = () => {
             {/* Tip selector */}
             <div className="space-y-2" data-testid="checkout-tip-section">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Propina</label>
+                <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">{t('common.tip')}</label>
                 <div className="flex items-center gap-1 bg-ink-800/60 border border-white/10 rounded-xl p-0.5">
                   <button
                     type="button"
@@ -655,15 +657,15 @@ const POSContent = () => {
                 />
               )}
               <div className="flex items-center justify-between text-xs text-foreground/60 pt-1" data-testid="checkout-totals-breakdown">
-                <span>Subtotal</span>
+                <span>{t('common.subtotal')}</span>
                 <span className="font-mono font-bold text-foreground" data-testid="checkout-subtotal">{formatMoney(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-success font-bold">+ Propina</span>
+                <span className="text-success font-bold">+ {t('common.tip')}</span>
                 <span className="font-mono font-bold text-success" data-testid="checkout-tip">{formatMoney(tip)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-1">
-                <span className="text-sm font-bold text-foreground">TOTAL</span>
+                <span className="text-sm font-bold text-foreground">{t('common.total').toUpperCase()}</span>
                 <span className="font-mono font-black text-primary-500 text-glow-cyan text-xl" data-testid="checkout-total">{formatMoney(total)}</span>
               </div>
             </div>
@@ -676,7 +678,7 @@ const POSContent = () => {
                   exit={{ height: 0, opacity: 0 }}
                   className="space-y-2 overflow-hidden"
                 >
-                  <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">Monto recibido</label>
+                  <label className="text-xs font-bold tracking-widest uppercase text-foreground/60">{t('checkout.amount_received')}</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -693,7 +695,7 @@ const POSContent = () => {
                       className="bg-success/10 border border-success/30 rounded-2xl p-3 flex items-center justify-between"
                       data-testid="checkout-change"
                     >
-                      <span className="text-sm font-bold text-success">Cambio</span>
+                      <span className="text-sm font-bold text-success">{t('common.change')}</span>
                       <span className="font-mono font-black text-success text-2xl"><AnimatedNumber value={change} format={(v) => formatMoney(v)} /></span>
                     </motion.div>
                   )}
@@ -702,9 +704,9 @@ const POSContent = () => {
             </AnimatePresence>
           </div>
           <DialogFooter className="flex-row gap-2 sm:gap-2">
-            <Button variant="outline" className="flex-1 h-12 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10" onClick={() => setShowCheckout(false)}>Cancelar</Button>
+            <Button variant="outline" className="flex-1 h-12 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10" onClick={() => setShowCheckout(false)}>{t('common.cancel')}</Button>
             <Button className="flex-1 h-12 rounded-2xl bg-success hover:bg-success/90 text-ink-950 font-bold" onClick={handleCheckout} disabled={submitting} data-testid="confirm-checkout-button">
-              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ReceiptIcon className="h-4 w-4 mr-1" /> Cobrar</>}
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ReceiptIcon className="h-4 w-4 mr-1" /> {t('pos.charge')}</>}
             </Button>
           </DialogFooter>
           <button
@@ -792,12 +794,14 @@ const EmptyState = ({ empty }) => (
   </div>
 );
 
-const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout, cashier }) => (
+const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout, cashier }) => {
+  const { t } = useTranslation();
+  return (
   <div className="flex flex-col h-full" data-testid="cart-content">
     <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
       <div>
-        <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Orden actual</p>
-        <h2 className="font-heading text-xl font-black text-foreground">Carrito</h2>
+        <p className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">{t('pos.current_order')}</p>
+        <h2 className="font-heading text-xl font-black text-foreground">{t('pos.cart')}</h2>
         {cashier && (
           <div className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-primary-500">
             <span className="block h-1.5 w-1.5 rounded-full bg-success pulse-dot" />
@@ -807,7 +811,7 @@ const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout
       </div>
       {cart.length > 0 && (
         <button onClick={clearCart} className="text-xs font-bold uppercase tracking-wider text-destructive hover:text-glow-violet ios-press" data-testid="cart-clear-button">
-          Vaciar
+          {t('pos.clear')}
         </button>
       )}
     </div>
@@ -818,8 +822,8 @@ const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout
             <div className="relative inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-white/5 border border-white/5 mb-3">
               <ShoppingBag className="h-7 w-7 text-foreground/30" />
             </div>
-            <p className="text-foreground/50 font-medium">Aún no hay productos</p>
-            <p className="text-xs text-foreground/30 mt-1">Toca un producto para agregarlo</p>
+            <p className="text-foreground/50 font-medium">{t('pos.empty_cart')}</p>
+            <p className="text-xs text-foreground/30 mt-1">{t('pos.add_hint')}</p>
           </motion.div>
         ) : (
           cart.map((it, idx) => (
@@ -864,7 +868,7 @@ const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout
     </div>
     <div className="px-5 py-4 pb-24 lg:pb-20 border-t border-white/5 space-y-3 bg-ink-900/80 safe-bottom">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">Total</span>
+        <span className="text-[10px] font-bold tracking-widest uppercase text-foreground/40">{t('common.total')}</span>
         <span className="font-mono font-black text-3xl text-primary-500 text-glow-cyan" data-testid="cart-total">
           <AnimatedNumber value={total} format={(v) => formatMoney(v)} />
         </span>
@@ -876,11 +880,12 @@ const CartContent = ({ cart, updateQty, removeItem, clearCart, total, onCheckout
           onClick={onCheckout}
           data-testid="cart-checkout-button"
         >
-          Cobrar {cart.length > 0 && formatMoney(total)}
+          {t('pos.charge')} {cart.length > 0 && formatMoney(total)}
         </Button>
       </motion.div>
     </div>
   </div>
-);
+  );
+};
 
 export default POSPage;

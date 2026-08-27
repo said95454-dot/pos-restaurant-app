@@ -38,6 +38,17 @@ Decisión (Feb 2026): NO integrar pagos con tarjeta mientras la app siga siendo 
 **Opción intermedia descartada** (por ahora): Stripe Payment Links + QR — funcionaba en ambos países sin hardware, pero el usuario prefiere esperar al empaque nativo para tener el flujo con lector físico (mejor UX en restaurante).
 
 
+
+## v2.4 (Feb 2026) — i18n Fase 2 + Modo Presentación
+
+### Nuevo
+- 🌐 **Traducciones completas (i18n Fase 2)**: POSPage, TablesPage, KitchenDisplayPage, CustomerDisplayPage, CashierGate, OnlineStatusIndicator y RealtimeIndicator ahora consumen `t()`. Toggle en Ajustes → Idioma cambia inmediatamente todos los headers, botones, toasts y labels sin recargar.
+- 🎨 **Modo Presentación** en la pantalla del cliente (IdleScreen): logo con halo pulsante, 3 orbes flotantes animados (cyan/ámbar/violeta), tagline rotante que cambia cada 5 segundos (4 mensajes distintos), badge verde "Abiertos ahora" con dot pulsante, y CTA parpadeante "Acércate a la barra para ordenar". Nuevas keys `customer_display.presentation.*` en es/en.
+- ⏱️ **ThankYou con auto-timer**: la pantalla de gracias con el cambio ahora se cierra en 15s O al iniciar una nueva venta (lo que ocurra primero).
+
+### Testing
+- Iteración 17: 100% frontend en el scope solicitado (POS/Tables/KDS/Display + Modo Presentación). Sub-scope leak detectado (CashierGate/Offline/Realtime chrome) — corregido en la misma iteración.
+
 ## Estado Actual (Enero 2026) — v2.2
 
 ### Implementado y Validado ✅

@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Lock, UserPlus, KeyRound, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 /**
  * CashierGate — guards the POS sales screen. The user MUST log in as a cashier
  * before they can sell. If no cashiers exist, prompts to create one.
  */
 const CashierGate = ({ children }) => {
+  const { t } = useTranslation();
   const { cashier, setActiveCashier } = useAuth();
   const [cashiers, setCashiers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ const CashierGate = ({ children }) => {
     try {
       const list = await cashiersApi.list();
       setCashiers(list.filter(c => c.active));
-    } catch { toast.error('Error al cargar cajeros'); }
+    } catch { toast.error(t('common.error')); }
     finally { setLoading(false); }
   };
   useEffect(() => { if (!cashier) load(); }, [cashier]);
@@ -42,9 +44,9 @@ const CashierGate = ({ children }) => {
       // Look up extra props (default_tip_percent) from the list we already fetched
       const full = cashiers.find(c => c.id === r.cashier_id);
       setActiveCashier({ id: r.cashier_id, name: r.name, default_tip_percent: full?.default_tip_percent ?? null });
-      toast.success(`Hola, ${r.name}`);
+      toast.success(t('cashier.hello', { name: r.name }));
       setSelected(null); setPin(''); setPassword('');
-    } catch (e) { toast.error(e.response?.data?.detail || 'Credenciales incorrectas'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('common.error')); }
     finally { setSubmitting(false); }
   };
 
@@ -66,8 +68,8 @@ const CashierGate = ({ children }) => {
               <Lock className="h-9 w-9 text-amber" strokeWidth={1.6} />
             </div>
           </motion.div>
-          <h1 className="font-heading text-3xl font-black text-gradient mb-2">Inicia sesión de cajero</h1>
-          <p className="text-foreground/50">Para registrar ventas necesitas un cajero activo</p>
+          <h1 className="font-heading text-3xl font-black text-gradient mb-2">{t('cashier.start_session')}</h1>
+          <p className="text-foreground/50">{t('cashier.session_subtitle')}</p>
         </div>
 
         <div className="glass-strong rounded-3xl p-6 shadow-glass">
@@ -76,17 +78,17 @@ const CashierGate = ({ children }) => {
           ) : cashiers.length === 0 ? (
             <div className="text-center py-2">
               <UserPlus className="h-12 w-12 text-amber mx-auto mb-3" />
-              <h3 className="font-heading text-lg font-bold mb-1 text-foreground">Aún no hay cajeros</h3>
-              <p className="text-sm text-foreground/50 mb-4">Crea al menos un cajero para empezar a vender</p>
+              <h3 className="font-heading text-lg font-bold mb-1 text-foreground">{t('cashier.manage_cashiers')}</h3>
+              <p className="text-sm text-foreground/50 mb-4">{t('cashier.session_subtitle')}</p>
               <Link to="/cashiers">
                 <Button className="h-12 rounded-2xl bg-amber hover:bg-amber/90 text-ink-950 font-bold px-6" data-testid="gate-create-cashier-btn">
-                  <UserPlus className="h-4 w-4 mr-1" /> Crear cajero
+                  <UserPlus className="h-4 w-4 mr-1" /> {t('cashier.manage_cashiers')}
                 </Button>
               </Link>
             </div>
           ) : !selected ? (
             <div className="space-y-2">
-              <p className="text-xs font-bold tracking-widest uppercase text-foreground/60 mb-1">Selecciona tu usuario</p>
+              <p className="text-xs font-bold tracking-widest uppercase text-foreground/60 mb-1">{t('cashier.select_user')}</p>
               {cashiers.map(c => (
                 <motion.button
                   key={c.id}
@@ -102,15 +104,15 @@ const CashierGate = ({ children }) => {
                   <div className="flex-1 text-left min-w-0">
                     <p className="font-bold text-foreground truncate">{c.name}</p>
                     <div className="flex gap-1.5 mt-0.5">
-                      {c.has_pin && <span className="text-[10px] font-bold uppercase bg-white/5 text-foreground/60 px-2 py-0.5 rounded-full">PIN</span>}
-                      {c.has_password && <span className="text-[10px] font-bold uppercase bg-white/5 text-foreground/60 px-2 py-0.5 rounded-full">Contraseña</span>}
+                      {c.has_pin && <span className="text-[10px] font-bold uppercase bg-white/5 text-foreground/60 px-2 py-0.5 rounded-full">{t('cashier.pin')}</span>}
+                      {c.has_password && <span className="text-[10px] font-bold uppercase bg-white/5 text-foreground/60 px-2 py-0.5 rounded-full">{t('auth.password')}</span>}
                     </div>
                   </div>
                 </motion.button>
               ))}
               <Link to="/cashiers" className="block pt-2">
                 <Button variant="outline" className="w-full h-11 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 text-foreground" data-testid="gate-manage-cashiers-btn">
-                  <UserPlus className="h-4 w-4 mr-1" /> Gestionar cajeros
+                  <UserPlus className="h-4 w-4 mr-1" /> {t('cashier.manage_cashiers')}
                 </Button>
               </Link>
             </div>
@@ -125,7 +127,7 @@ const CashierGate = ({ children }) => {
               >
                 <div className="flex items-center gap-3">
                   <button onClick={() => { setSelected(null); setPin(''); setPassword(''); }} className="text-foreground/60 hover:text-foreground" data-testid="gate-back-btn">
-                    ← Atrás
+                    ← {t('common.back')}
                   </button>
                 </div>
                 <div className="text-center">
@@ -136,8 +138,8 @@ const CashierGate = ({ children }) => {
                 </div>
                 {selected.has_pin && selected.has_password && (
                   <div className="grid grid-cols-2 gap-1 bg-ink-800 rounded-2xl p-1">
-                    <button onClick={() => setMode('pin')} className={`h-10 rounded-xl text-sm font-bold ${mode === 'pin' ? 'bg-primary-500 text-ink-950 shadow-neon-cyan' : 'text-foreground/60'}`} data-testid="gate-mode-pin">PIN</button>
-                    <button onClick={() => setMode('password')} className={`h-10 rounded-xl text-sm font-bold ${mode === 'password' ? 'bg-primary-500 text-ink-950 shadow-neon-cyan' : 'text-foreground/60'}`} data-testid="gate-mode-password">Contraseña</button>
+                    <button onClick={() => setMode('pin')} className={`h-10 rounded-xl text-sm font-bold ${mode === 'pin' ? 'bg-primary-500 text-ink-950 shadow-neon-cyan' : 'text-foreground/60'}`} data-testid="gate-mode-pin">{t('cashier.pin')}</button>
+                    <button onClick={() => setMode('password')} className={`h-10 rounded-xl text-sm font-bold ${mode === 'password' ? 'bg-primary-500 text-ink-950 shadow-neon-cyan' : 'text-foreground/60'}`} data-testid="gate-mode-password">{t('auth.password')}</button>
                   </div>
                 )}
                 {mode === 'pin' ? (
@@ -158,7 +160,7 @@ const CashierGate = ({ children }) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && password && handleLogin()}
-                    placeholder="Contraseña"
+                    placeholder={t('auth.password')}
                     className="h-12 rounded-2xl bg-ink-800 border-white/10 focus:border-primary-500 text-foreground"
                     data-testid="gate-password-input"
                   />
@@ -169,7 +171,7 @@ const CashierGate = ({ children }) => {
                   disabled={submitting || (mode === 'pin' ? pin.length !== 4 : !password)}
                   data-testid="gate-submit-btn"
                 >
-                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (<><Sparkles className="h-4 w-4 mr-2" /> Entrar</>)}
+                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (<><Sparkles className="h-4 w-4 mr-2" /> {t('cashier.enter')}</>)}
                 </Button>
               </motion.div>
             </AnimatePresence>

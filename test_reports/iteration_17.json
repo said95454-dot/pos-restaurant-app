@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 17 — frontend-only regression on (a) full i18n coverage for POS / Tables / KDS / Customer Display and (b) new 'Modo Presentación' on the idle Customer Display. Executed 2 Playwright runs against the public preview URL, logging in with the primary account, switching language via /settings and via localStorage('pos_lang'), and reloading each target route. Verified sidebar translation, POS categories/header/Charge button, Tables header + New table, KDS header, and the presentation-mode IdleScreen (pulsing halo, 3 floating orbs, restaurant name, rotating tagline every 5s, green 'Open now' badge with pulsing dot, blinking CTA). Rotation was proven live: 'Fresh cooking made with love' → 'Flavors you'll fall in love with' after 6s. ES rollback confirmed: 'Cocina fresca hecha con amor' / 'ABIERTOS AHORA' / 'ACÉRCATE A LA BARRA PARA ORDENAR'. Screenshots captured at /tmp/pos_en.png, /tmp/display_idle_en.png, /tmp/display_idle_es_v2.png.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "POS (CashierGate + AppShell chrome)", "issues": [
+        "CashierGate strings remain hardcoded in Spanish even when i18n language is English: 'Inicia sesión de cajero', 'Para registrar ventas necesitas un cajero activo', 'SELECCIONA TU USUARIO', PIN cashier toast 'Hola, saiko'. Locale keys already exist under `cashier.*` — component is not consuming them.",
+        "OfflineIndicator remains hardcoded ES: 'EN LÍNEA' / 'sin pendientes'. Keys already exist under `offline.*`.",
+        "Realtime pill remains hardcoded ES: 'EN VIVO' / 'N PANTALLAS'. Keys already exist under `realtime.*`."
+      ]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Wire useTranslation() into CashierGate, OfflineIndicator and RealtimeIndicator components — locale keys already exist in es.json/en.json (cashier.*, offline.*, realtime.*) but the components render Spanish literals."
+  ],
+  "critical_code_review_comments": [
+    "CustomerDisplayPage.IdleScreen: taglines array is rebuilt every render because it depends on t(); the effect deps only track taglines.length (stable at 4). This is fine and prevents a re-init loop, but leaves i18n live-swap of the ROTATING tagline slightly lagged (up to 5s) — acceptable UX. Alternative: derive the tagline via t(`customer_display.presentation.tagline_${idx+1}`) inline so switch is instant.",
+    "TablesPage/KDS: statusMeta is a function that takes t — great pattern, avoids the frozen-locale-on-first-render bug. Both files verified to call it inside render.",
+    "SettingsPage LanguageCard writes to both i18n.changeLanguage and localStorage('pos_lang'); i18next-browser-languagedetector cache also writes the same key — double-write is harmless and idempotent.",
+    "IdleScreen has 3 blur-3xl animated orbs + halo + AnimatePresence tagline — GPU-friendly transforms only, no layout thrash. Verified smooth on 1920x1080.",
+    "Out-of-scope but noticed: hardcoded ES strings in CashierGate, OfflineIndicator, Realtime pill — action item above."
+  ],
+  "updated_files": [],
+  "success_rate": {"frontend": "100% for requested scope (POS/Tables/KDS/Display i18n + Presentation Mode). Sub-scope leak found in CashierGate/Offline/Realtime chrome."},
+  "test_credentials": "said95454@gmail.com / pos12345 — cashier saiko PIN 1234",
+  "seed_data_creation": "None. No products/tables/orders were created in this iteration.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Use localStorage.setItem('pos_lang','en'|'es') + page.goto(...) for reliable language switching in tests — the /settings button click also works but a subsequent page.goto() may race with i18n hydration. The /display route requires restaurant auth (Protected) but not cashier PIN. The presentation-mode tagline rotates every 5000ms; assert with data-testid='display-tagline' and wait_for_timeout(5200) minimum. Note that hero labels ('Open now', CTA) are rendered with `uppercase` CSS transform — assertions on page.inner_text() will see them uppercased; use case-insensitive checks.",
+  "rca of the issue": "N/A — no blocking bugs. The only observation is that the AppShell chrome (CashierGate/OfflineIndicator/Realtime pill) was not migrated to i18n in this iteration; locale keys already exist, so the fix is a small useTranslation() wiring per component."
+}

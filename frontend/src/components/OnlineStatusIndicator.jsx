@@ -2,10 +2,12 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Wifi, WifiOff, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { pendingCount } from '@/utils/offlineQueue';
 import { syncPendingOrders } from '@/utils/offlineSync';
 
 const OnlineStatusIndicator = () => {
+  const { t } = useTranslation();
   const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pending, setPending] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -21,24 +23,24 @@ const OnlineStatusIndicator = () => {
       const result = await syncPendingOrders();
       const { synced = 0, failed = 0, skipped = false } = result || {};
       if (skipped) return; // another indicator instance is handling it
-      if (synced > 0) toast.success(`${synced} orden(es) sincronizada(s)`, { id: 'sync-ok', duration: 6000 });
-      if (failed > 0 && !silent) toast.error(`${failed} orden(es) no se pudieron sincronizar`);
+      if (synced > 0) toast.success(t('offline.synced', { count: synced }), { id: 'sync-ok', duration: 6000 });
+      if (failed > 0 && !silent) toast.error(t('common.error'));
     } finally {
       setSyncing(false);
       refreshPending();
     }
-  }, [refreshPending]);
+  }, [refreshPending, t]);
 
   useEffect(() => {
     refreshPending();
     const handleOnline = () => {
       setOnline(true);
-      toast.success('Conexión restaurada', { id: 'net-status' });
+      toast.success(t('offline.connection_restored'), { id: 'net-status' });
       runSync(true);
     };
     const handleOffline = () => {
       setOnline(false);
-      toast.warning('Sin conexión — las ventas se guardarán localmente', { id: 'net-status' });
+      toast.warning(t('offline.connection_lost'), { id: 'net-status' });
     };
     const handleQueueUpdated = () => refreshPending();
     window.addEventListener('online', handleOnline);
@@ -76,23 +78,23 @@ const OnlineStatusIndicator = () => {
           data-testid={online ? 'status-online' : 'status-offline'}
         >
           {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-          {online ? 'En línea' : 'Sin conexión'}
+          {online ? t('offline.online') : t('offline.offline')}
         </div>
         {showSyncBadge && (
           <button
             onClick={() => runSync(false)}
             disabled={!online || syncing}
             className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border bg-primary-500/10 border-primary-500/30 text-primary-500 hover:bg-primary-500/20 disabled:opacity-60"
-            title="Sincronizar órdenes pendientes"
+            title={t('common.confirm')}
             data-testid="sync-pending-button"
           >
             {syncing ? <RefreshCw className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-            {pending} pendiente{pending === 1 ? '' : 's'}
+            {pending} {pending === 1 ? t('offline.pending_one') : t('offline.pending_many')}
           </button>
         )}
         {!showSyncBadge && online && !syncing && (
           <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-medium text-foreground/40">
-            <CheckCircle2 className="h-3 w-3" /> sin pendientes
+            <CheckCircle2 className="h-3 w-3" /> {t('offline.no_pending')}
           </span>
         )}
       </motion.div>

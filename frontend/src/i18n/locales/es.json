@@ -215,6 +215,18 @@
     "payment_registered": "Tu pago de ${{total}} fue registrado",
     "tip_message": "Propina de ${{tip}} — ¡mil gracias!",
     "scan": "Escanea y",
-    "follow_us": "Síguenos"
+    "follow_us": "Síguenos",
+    "your_change": "Tu cambio",
+    "received": "Recibido",
+    "total": "Total",
+    "change": "Cambio",
+    "presentation": {
+      "tagline_1": "Cocina fresca hecha con amor",
+      "tagline_2": "Sabores que te van a encantar",
+      "tagline_3": "Ingredientes de la casa, todos los días",
+      "tagline_4": "Pide y disfruta — nosotros nos encargamos",
+      "cta": "Acércate a la barra para ordenar",
+      "hours_hint": "Abiertos ahora"
+    }
   }
 }

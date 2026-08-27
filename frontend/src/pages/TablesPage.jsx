@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import {
   Users, UtensilsCrossed, Clock, Plus, Trash2, Pencil, CheckCircle2,
   CalendarClock, X, Receipt, ChefHat, ShoppingBag
@@ -12,12 +13,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const STATUS_META = {
-  free:     { label: 'Libre',        colorClass: 'bg-success/10 border-success/30 text-success',        dot: 'bg-success',      icon: CheckCircle2 },
-  occupied: { label: 'Ocupada',      colorClass: 'bg-amber/10 border-amber/40 text-amber',              dot: 'bg-amber',        icon: UtensilsCrossed },
-  billed:   { label: 'Cuenta',       colorClass: 'bg-primary-500/10 border-primary-500/40 text-primary-500', dot: 'bg-primary-500', icon: Receipt },
-  reserved: { label: 'Reservada',    colorClass: 'bg-violet-400/10 border-violet-400/40 text-violet-400', dot: 'bg-violet-400', icon: CalendarClock },
-};
+const statusMeta = (t) => ({
+  free:     { label: t('tables.free'),        colorClass: 'bg-success/10 border-success/30 text-success',        dot: 'bg-success',      icon: CheckCircle2 },
+  occupied: { label: t('tables.occupied'),    colorClass: 'bg-amber/10 border-amber/40 text-amber',              dot: 'bg-amber',        icon: UtensilsCrossed },
+  billed:   { label: t('tables.billed'),      colorClass: 'bg-primary-500/10 border-primary-500/40 text-primary-500', dot: 'bg-primary-500', icon: Receipt },
+  reserved: { label: t('tables.reserved'),    colorClass: 'bg-violet-400/10 border-violet-400/40 text-violet-400', dot: 'bg-violet-400', icon: CalendarClock },
+});
 
 const openMinutes = (openedAt) => {
   if (!openedAt) return 0;
@@ -26,13 +27,14 @@ const openMinutes = (openedAt) => {
 };
 
 const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onEdit, onDelete }) => {
-  const meta = STATUS_META[table.status] || STATUS_META.free;
+  const { t } = useTranslation();
+  const meta = statusMeta(t)[table.status] || statusMeta(t).free;
   const Icon = meta.icon;
   const [, tick] = useState(0);
   useEffect(() => {
     if (table.status !== 'occupied' && table.status !== 'billed') return;
-    const t = setInterval(() => tick(v => v + 1), 30000);
-    return () => clearInterval(t);
+    const iv = setInterval(() => tick(v => v + 1), 30000);
+    return () => clearInterval(iv);
   }, [table.status]);
   const mins = openMinutes(table.opened_at);
 
@@ -58,7 +60,7 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
           onClick={() => onEdit(table)}
           className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 text-foreground/50 hover:text-foreground flex items-center justify-center"
           data-testid={`table-edit-${table.id}`}
-          title="Editar mesa"
+          title={t('common.edit')}
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
@@ -68,7 +70,7 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
             onClick={() => onDelete(table)}
             className="h-8 w-8 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive flex items-center justify-center"
             data-testid={`table-delete-${table.id}`}
-            title="Eliminar mesa"
+            title={t('common.delete')}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -81,7 +83,7 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
             <span className="font-mono font-black text-2xl">{table.number}</span>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Mesa</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">{t('tables.table')}</p>
             <div className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${meta.colorClass} mt-1`}>
               <Icon className="h-3 w-3" /> {meta.label}
             </div>
@@ -101,11 +103,11 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
 
       {table.waiter_name && (
         <p className="text-xs text-foreground/50 mb-3">
-          Mesero <span className="font-bold text-foreground">{table.waiter_name}</span>
+          {t('tables.waiter')} <span className="font-bold text-foreground">{table.waiter_name}</span>
         </p>
       )}
       {table.status === 'reserved' && table.reserved_for && (
-        <p className="text-xs text-foreground/60 mb-3">Reserva: <span className="font-bold text-foreground">{table.reserved_for}</span></p>
+        <p className="text-xs text-foreground/60 mb-3">{t('tables.reserve')}: <span className="font-bold text-foreground">{table.reserved_for}</span></p>
       )}
 
       {/* Live ticket preview — shows what has been added while the table is being used */}
@@ -117,7 +119,7 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
           data-testid={`table-ticket-preview-${table.id}`}
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-500">Ticket en vivo · {table.open_ticket.item_count} artículos</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-500">{t('tables.live_ticket', { count: table.open_ticket.item_count })}</span>
             <span className="font-mono font-black text-primary-500 text-sm">${Number(table.open_ticket.subtotal || 0).toFixed(2)}</span>
           </div>
           <div className="max-h-24 overflow-y-auto space-y-1">
@@ -129,7 +131,7 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
               </div>
             ))}
             {(table.open_ticket.items || []).length > 4 && (
-              <p className="text-[10px] text-foreground/40 italic">+{table.open_ticket.items.length - 4} más…</p>
+              <p className="text-[10px] text-foreground/40 italic">{t('tables.more_items', { count: table.open_ticket.items.length - 4 })}</p>
             )}
           </div>
         </motion.div>
@@ -139,30 +141,30 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
         {table.status === 'free' && (
           <>
             <Button onClick={() => onOpen(table)} className="h-9 flex-1 rounded-xl bg-success hover:bg-success/90 text-ink-950 font-bold text-xs" data-testid={`table-open-${table.id}`}>
-              Abrir
+              {t('tables.open')}
             </Button>
             <Button variant="outline" onClick={() => onReserve(table)} className="h-9 rounded-xl border-violet-400/40 bg-violet-400/10 hover:bg-violet-400/20 text-violet-400 text-xs" data-testid={`table-reserve-${table.id}`}>
-              Reservar
+              {t('tables.reserve')}
             </Button>
           </>
         )}
         {(table.status === 'occupied' || table.status === 'billed') && (
           <>
             <Button onClick={() => onOpen(table)} className="h-9 flex-1 rounded-xl bg-primary-500 hover:bg-primary-500/90 text-ink-950 font-bold text-xs" data-testid={`table-continue-${table.id}`}>
-              <ShoppingBag className="h-3.5 w-3.5 mr-1" /> Continuar
+              <ShoppingBag className="h-3.5 w-3.5 mr-1" /> {t('tables.continue_table')}
             </Button>
             <Button variant="outline" onClick={() => onClose(table)} className="h-9 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-foreground text-xs" data-testid={`table-free-${table.id}`}>
-              Liberar
+              {t('tables.free_table')}
             </Button>
           </>
         )}
         {table.status === 'reserved' && (
           <>
             <Button onClick={() => onOpen(table)} className="h-9 flex-1 rounded-xl bg-success hover:bg-success/90 text-ink-950 font-bold text-xs" data-testid={`table-open-${table.id}`}>
-              Sentar
+              {t('tables.sit')}
             </Button>
             <Button variant="outline" onClick={() => onUnreserve(table)} className="h-9 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-foreground text-xs" data-testid={`table-unreserve-${table.id}`}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
           </>
         )}
@@ -172,6 +174,7 @@ const TableCard = ({ table, onOpen, onClose, onBill, onReserve, onUnreserve, onE
 };
 
 const OpenTableModal = ({ table, cashiers, onCancel, onConfirm }) => {
+  const { t } = useTranslation();
   const [waiterId, setWaiterId] = useState('');
   const active = cashiers.filter(c => c.active !== false);
   const selected = active.find(c => c.id === waiterId);
@@ -185,21 +188,21 @@ const OpenTableModal = ({ table, cashiers, onCancel, onConfirm }) => {
       >
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-success">Abrir mesa</p>
-            <h2 className="font-heading text-2xl font-black text-foreground">Mesa {table.number} — {table.capacity} personas</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-success">{t('tables.open_table')}</p>
+            <h2 className="font-heading text-2xl font-black text-foreground">{t('tables.table')} {table.number} — {table.capacity} {t('tables.people')}</h2>
           </div>
           <button onClick={onCancel} className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center" data-testid="open-table-close"><X className="h-4 w-4" /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-semibold text-foreground">Mesero <span className="text-foreground/50 text-xs">(opcional)</span></label>
+            <label className="text-sm font-semibold text-foreground">{t('tables.waiter')} <span className="text-foreground/50 text-xs">(opcional)</span></label>
             <select
               value={waiterId}
               onChange={(e) => setWaiterId(e.target.value)}
               className="mt-1 w-full h-12 rounded-2xl bg-ink-800/60 border border-white/10 px-3 text-foreground"
               data-testid="open-table-waiter-select"
             >
-              <option value="">Sin asignar</option>
+              <option value="">{t('tables.unassigned')}</option>
               {active.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -210,7 +213,7 @@ const OpenTableModal = ({ table, cashiers, onCancel, onConfirm }) => {
             className="w-full h-12 rounded-2xl bg-success hover:bg-success/90 text-ink-950 font-bold"
             data-testid="open-table-confirm"
           >
-            Abrir mesa <UtensilsCrossed className="h-4 w-4 ml-2" />
+            {t('tables.open_table')} <UtensilsCrossed className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </motion.div>
@@ -219,6 +222,7 @@ const OpenTableModal = ({ table, cashiers, onCancel, onConfirm }) => {
 };
 
 const ReserveTableModal = ({ table, onCancel, onConfirm }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onCancel}>
@@ -230,15 +234,15 @@ const ReserveTableModal = ({ table, onCancel, onConfirm }) => {
       >
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Reservar</p>
-            <h2 className="font-heading text-2xl font-black text-foreground">Mesa {table.number}</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400">{t('tables.reserve')}</p>
+            <h2 className="font-heading text-2xl font-black text-foreground">{t('tables.table')} {table.number}</h2>
           </div>
           <button onClick={onCancel} className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
-        <label className="text-sm font-semibold text-foreground">Nombre de la reserva</label>
+        <label className="text-sm font-semibold text-foreground">{t('tables.reserve_name')}</label>
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Familia López — 20:00" className="mt-1 h-12 rounded-2xl bg-ink-800/60 border-white/10" data-testid="reserve-name-input" />
         <Button onClick={() => onConfirm({ reserved_for: name.trim() || null })} className="w-full mt-4 h-12 rounded-2xl bg-violet-400 hover:bg-violet-400/90 text-ink-950 font-bold" data-testid="reserve-confirm">
-          Reservar mesa
+          {t('tables.reserve_table_button')}
         </Button>
       </motion.div>
     </div>
@@ -246,6 +250,7 @@ const ReserveTableModal = ({ table, onCancel, onConfirm }) => {
 };
 
 const EditTableModal = ({ table, onCancel, onConfirm }) => {
+  const { t } = useTranslation();
   const isNew = !table.id;
   const [number, setNumber] = useState(table.number ?? '');
   const [capacity, setCapacity] = useState(table.capacity ?? 4);
@@ -258,16 +263,16 @@ const EditTableModal = ({ table, onCancel, onConfirm }) => {
         data-testid={isNew ? 'add-table-modal' : 'edit-table-modal'}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-heading text-2xl font-black text-foreground">{isNew ? 'Nueva mesa' : `Editar mesa ${table.number}`}</h2>
+          <h2 className="font-heading text-2xl font-black text-foreground">{isNew ? t('tables.add_table') : `${t('common.edit')} ${t('tables.table').toLowerCase()} ${table.number}`}</h2>
           <button onClick={onCancel} className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-semibold text-foreground">Número de mesa</label>
+            <label className="text-sm font-semibold text-foreground">{t('tables.table_number')}</label>
             <Input type="number" min={1} value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1 h-12 rounded-2xl bg-ink-800/60 border-white/10" data-testid="table-number-input" />
           </div>
           <div>
-            <label className="text-sm font-semibold text-foreground">Capacidad (personas)</label>
+            <label className="text-sm font-semibold text-foreground">{t('tables.capacity')}</label>
             <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} className="mt-1 h-12 rounded-2xl bg-ink-800/60 border-white/10" data-testid="table-capacity-input" />
           </div>
           <Button
@@ -276,7 +281,7 @@ const EditTableModal = ({ table, onCancel, onConfirm }) => {
             className="w-full h-12 rounded-2xl bg-primary-500 hover:bg-primary-500/90 text-ink-950 font-bold"
             data-testid="table-save-button"
           >
-            {isNew ? 'Crear mesa' : 'Guardar cambios'}
+            {isNew ? t('tables.create_table') : t('tables.save_changes')}
           </Button>
         </div>
       </motion.div>
@@ -285,6 +290,7 @@ const EditTableModal = ({ table, onCancel, onConfirm }) => {
 };
 
 const TablesPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { cashier } = useAuth();
   const [tables, setTables] = useState([]);
@@ -296,12 +302,12 @@ const TablesPage = () => {
 
   const load = useCallback(async () => {
     try {
-      const [t, c] = await Promise.all([tablesApi.list(), cashiersApi.list()]);
-      setTables(t);
-      setCashiers(c);
-    } catch { toast.error('No se pudieron cargar las mesas'); }
+      const [tbls, cshrs] = await Promise.all([tablesApi.list(), cashiersApi.list()]);
+      setTables(tbls);
+      setCashiers(cshrs);
+    } catch { toast.error(t('common.error')); }
     finally { setLoading(false); }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -329,71 +335,71 @@ const TablesPage = () => {
         : payload;
       const opened = await tablesApi.open(openingTable.id, finalPayload);
       setOpeningTable(null);
-      toast.success(`Mesa ${opened.number} abierta`);
+      toast.success(`${t('tables.table')} ${opened.number} · ${t('tables.open')}`);
       navigate(`/pos?table=${opened.id}`);
-    } catch (e) { toast.error(e.response?.data?.detail || 'No se pudo abrir la mesa'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('common.error')); }
   };
 
   const handleClose = async (table) => {
-    if (!window.confirm(`¿Liberar la mesa ${table.number}? Esta acción no cobra la orden.`)) return;
+    if (!window.confirm(`${t('tables.free_table')} ${t('tables.table').toLowerCase()} ${table.number}?`)) return;
     try {
       await tablesApi.close(table.id);
-      toast.success(`Mesa ${table.number} liberada`);
+      toast.success(`${t('tables.table')} ${table.number} · ${t('tables.free')}`);
       load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('common.error')); }
   };
 
-  const handleReserve = (table) => setReservingTable(table);
+  const handleReserve = (tbl) => setReservingTable(tbl);
   const confirmReserve = async (payload) => {
     try {
       await tablesApi.reserve(reservingTable.id, payload);
       setReservingTable(null);
-      toast.success(`Mesa ${reservingTable.number} reservada`);
+      toast.success(`${t('tables.table')} ${reservingTable.number} · ${t('tables.reserved')}`);
       load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('common.error')); }
   };
 
-  const handleUnreserve = async (table) => {
+  const handleUnreserve = async (tbl) => {
     try {
-      await tablesApi.unreserve(table.id);
-      toast.success('Reserva cancelada');
+      await tablesApi.unreserve(tbl.id);
+      toast.success(t('common.confirm'));
       load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('common.error')); }
   };
 
-  const handleEdit = (table) => setEditingTable(table);
+  const handleEdit = (tbl) => setEditingTable(tbl);
   const handleAdd = () => {
-    const next = (tables.reduce((m, t) => Math.max(m, t.number), 0) || 0) + 1;
+    const next = (tables.reduce((m, tbl) => Math.max(m, tbl.number), 0) || 0) + 1;
     setEditingTable({ number: next, capacity: 4 });
   };
   const confirmEdit = async (payload) => {
     try {
       if (editingTable.id) {
         await tablesApi.update(editingTable.id, payload);
-        toast.success('Mesa actualizada');
+        toast.success(t('settings.changes_saved'));
       } else {
         await tablesApi.create(payload);
-        toast.success('Mesa creada');
+        toast.success(t('tables.create_table'));
       }
       setEditingTable(null);
       load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('common.error')); }
   };
 
-  const handleDelete = async (table) => {
-    if (!window.confirm(`¿Eliminar la mesa ${table.number}? Esta acción es permanente.`)) return;
+  const handleDelete = async (tbl) => {
+    if (!window.confirm(`${t('common.delete')} ${t('tables.table').toLowerCase()} ${tbl.number}?`)) return;
     try {
-      await tablesApi.remove(table.id);
-      toast.success('Mesa eliminada');
+      await tablesApi.remove(tbl.id);
+      toast.success(t('common.delete'));
       load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('common.error')); }
   };
 
   const stats = useMemo(() => ({
-    free: tables.filter(t => t.status === 'free').length,
-    occupied: tables.filter(t => t.status === 'occupied').length,
-    billed: tables.filter(t => t.status === 'billed').length,
-    reserved: tables.filter(t => t.status === 'reserved').length,
+    free: tables.filter(tbl => tbl.status === 'free').length,
+    occupied: tables.filter(tbl => tbl.status === 'occupied').length,
+    billed: tables.filter(tbl => tbl.status === 'billed').length,
+    reserved: tables.filter(tbl => tbl.status === 'reserved').length,
   }), [tables]);
 
   return (
@@ -404,16 +410,16 @@ const TablesPage = () => {
             <div className="h-10 w-10 rounded-2xl bg-primary-500/15 border border-primary-500/30 text-primary-500 flex items-center justify-center">
               <UtensilsCrossed className="h-5 w-5" />
             </div>
-            <h1 className="font-heading text-2xl md:text-3xl font-black text-foreground">Sala</h1>
+            <h1 className="font-heading text-2xl md:text-3xl font-black text-foreground">{t('tables.title')}</h1>
           </div>
-          <p className="text-xs text-foreground/50 ml-12">Vista de mesas en tiempo real</p>
+          <p className="text-xs text-foreground/50 ml-12">{t('tables.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={() => navigate('/pos?walk=1')} variant="outline" className="h-11 rounded-2xl border-white/10 bg-white/5 text-foreground" data-testid="pos-walkin-button">
-            <ShoppingBag className="h-4 w-4 mr-2" /> Para llevar
+            <ShoppingBag className="h-4 w-4 mr-2" /> {t('tables.walk_in')}
           </Button>
           <Button onClick={handleAdd} className="h-11 rounded-2xl bg-primary-500 hover:bg-primary-500/90 text-ink-950 font-bold" data-testid="add-table-button">
-            <Plus className="h-4 w-4 mr-2" /> Nueva mesa
+            <Plus className="h-4 w-4 mr-2" /> {t('tables.add_table')}
           </Button>
         </div>
       </div>
@@ -421,10 +427,10 @@ const TablesPage = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { key: 'free', label: 'Libres', value: stats.free, cls: 'text-success bg-success/10 border-success/20' },
-          { key: 'occupied', label: 'Ocupadas', value: stats.occupied, cls: 'text-amber bg-amber/10 border-amber/20' },
-          { key: 'billed', label: 'Cuenta', value: stats.billed, cls: 'text-primary-500 bg-primary-500/10 border-primary-500/20' },
-          { key: 'reserved', label: 'Reservadas', value: stats.reserved, cls: 'text-violet-400 bg-violet-400/10 border-violet-400/20' },
+          { key: 'free', label: t('tables.libres'), value: stats.free, cls: 'text-success bg-success/10 border-success/20' },
+          { key: 'occupied', label: t('tables.ocupadas'), value: stats.occupied, cls: 'text-amber bg-amber/10 border-amber/20' },
+          { key: 'billed', label: t('tables.cuenta'), value: stats.billed, cls: 'text-primary-500 bg-primary-500/10 border-primary-500/20' },
+          { key: 'reserved', label: t('tables.reservadas'), value: stats.reserved, cls: 'text-violet-400 bg-violet-400/10 border-violet-400/20' },
         ].map(s => (
           <div key={s.key} className={`glass rounded-2xl p-4 border ${s.cls}`} data-testid={`stat-${s.key}`}>
             <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{s.label}</p>
@@ -434,23 +440,23 @@ const TablesPage = () => {
       </div>
 
       {loading ? (
-        <div className="text-center text-foreground/40 py-16">Cargando mesas…</div>
+        <div className="text-center text-foreground/40 py-16">{t('common.loading')}</div>
       ) : tables.length === 0 ? (
         <div className="glass rounded-3xl p-12 text-center border border-white/5" data-testid="tables-empty">
           <ChefHat className="h-14 w-14 text-primary-500/50 mx-auto mb-3" />
-          <h3 className="font-heading text-xl font-bold text-foreground mb-1">Aún no tienes mesas</h3>
-          <p className="text-sm text-foreground/50 mb-4">Crea tu primera mesa para empezar a operar la sala.</p>
+          <h3 className="font-heading text-xl font-bold text-foreground mb-1">{t('tables.no_tables')}</h3>
+          <p className="text-sm text-foreground/50 mb-4">{t('tables.subtitle')}</p>
           <Button onClick={handleAdd} className="h-11 rounded-2xl bg-primary-500 hover:bg-primary-500/90 text-ink-950 font-bold">
-            <Plus className="h-4 w-4 mr-2" /> Crear primera mesa
+            <Plus className="h-4 w-4 mr-2" /> {t('tables.create_first')}
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" data-testid="tables-grid">
           <AnimatePresence mode="popLayout">
-            {tables.map(t => (
+            {tables.map(tbl => (
               <TableCard
-                key={t.id}
-                table={t}
+                key={tbl.id}
+                table={tbl}
                 onOpen={handleOpen}
                 onClose={handleClose}
                 onBill={() => {}}

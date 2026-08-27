@@ -215,6 +215,18 @@
     "payment_registered": "Your payment of ${{total}} was registered",
     "tip_message": "Tip of ${{tip}} — thank you so much!",
     "scan": "Scan and",
-    "follow_us": "Follow us"
+    "follow_us": "Follow us",
+    "your_change": "Your change",
+    "received": "Received",
+    "total": "Total",
+    "change": "Change",
+    "presentation": {
+      "tagline_1": "Fresh cooking made with love",
+      "tagline_2": "Flavors you'll fall in love with",
+      "tagline_3": "House-made ingredients, every day",
+      "tagline_4": "Order and enjoy — we've got you",
+      "cta": "Step up to the counter to order",
+      "hours_hint": "Open now"
+    }
   }
 }
