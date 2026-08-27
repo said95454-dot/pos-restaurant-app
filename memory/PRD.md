@@ -25,6 +25,19 @@ POS Restaurante PWA. Multi-tenant FastAPI + React. Usuario pidió en orden:
 
 Files: `/app/backend/server.py`, `/app/frontend/src/pages/POSPage.jsx`, `/app/frontend/src/pages/CustomerDisplayPage.jsx`.
 
+## Backlog — Pagos con tarjeta (cuando se empaque como app iOS nativa)
+
+Decisión (Feb 2026): NO integrar pagos con tarjeta mientras la app siga siendo solo PWA. Se hará cuando toque empaquetar como app nativa iOS con Capacitor/Tauri. Mientras tanto, el flujo "Tarjeta" en el POS solo registra manualmente el pago (el cajero cobra en su terminal externa).
+
+**Cuando toque empaquetar como iOS nativa, integrar:**
+- 🇺🇸 **Stripe Terminal SDK** (US/EU): lector BBPOS WisePad 3 (~$59) o Stripe Reader S700 (~$349). SDK oficial iOS con soporte para plugin Capacitor.
+- 🇲🇽 **Mercado Pago Point SDK** (México/LatAm): lector Point Mini (~$399 MXN) o Point Smart (~$1.5k MXN). SDK iOS oficial, funciona por Bluetooth desde Capacitor.
+
+**Arquitectura recomendada**: capa de abstracción `paymentGateway.charge(amount, method)` para que el resto del POS no dependa del proveedor. Cada negocio elige en Ajustes qué gateway usa (Stripe / MP / manual).
+
+**Opción intermedia descartada** (por ahora): Stripe Payment Links + QR — funcionaba en ambos países sin hardware, pero el usuario prefiere esperar al empaque nativo para tener el flujo con lector físico (mejor UX en restaurante).
+
+
 ## Estado Actual (Enero 2026) — v2.2
 
 ### Implementado y Validado ✅
