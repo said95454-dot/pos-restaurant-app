@@ -63,6 +63,11 @@ const IdleScreen = ({ business }) => (
 const CartScreen = ({ cart, business }) => {
   const items = cart?.items || [];
   const PayIcon = PAYMENT_ICONS[cart?.payment_method] || Banknote;
+  const isCash = cart?.payment_method === 'cash';
+  const cashReceived = Number(cart?.amount_received || 0);
+  const changeDue = Number(cart?.change || 0);
+  const total = Number(cart?.total || 0);
+  const showLiveChange = cart?.is_checkout_open && isCash && cashReceived >= total && total > 0;
   return (
     <div className="flex-1 flex flex-col md:flex-row overflow-hidden" data-testid="display-cart">
       {/* Left: header + items */}
@@ -153,6 +158,37 @@ const CartScreen = ({ cart, business }) => {
               {formatMoney(cart?.total)}
             </motion.p>
           </div>
+
+          {/* LIVE change during checkout — pulses in when cashier types amount received */}
+          <AnimatePresence>
+            {showLiveChange && (
+              <motion.div
+                key="live-change"
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                className="mt-4 rounded-3xl bg-gradient-to-br from-amber/25 to-amber/5 border-2 border-amber/60 p-5 shadow-[0_0_60px_rgba(255,193,7,0.35)]"
+                data-testid="display-live-change"
+              >
+                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-amber/80 mb-1">
+                  <span>Recibido</span>
+                  <span className="font-mono text-foreground text-sm" data-testid="display-live-received">{formatMoney(cashReceived)}</span>
+                </div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-amber mb-1 mt-3">Tu cambio</p>
+                <motion.p
+                  key={changeDue}
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+                  className="font-mono font-black text-amber text-5xl md:text-6xl leading-none drop-shadow-[0_0_20px_rgba(255,193,7,0.6)]"
+                  data-testid="display-live-change-amount"
+                >
+                  {formatMoney(changeDue)}
+                </motion.p>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="flex items-center gap-3 mt-4 p-3 rounded-2xl bg-white/5 border border-white/10">
             <PayIcon className="h-5 w-5 text-amber" />
             <div>
