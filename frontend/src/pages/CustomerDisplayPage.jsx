@@ -345,6 +345,7 @@ const CustomerDisplayPage = () => {
     const offCart = onRealtime('cart.update', (data) => {
       // If a new non-empty cart arrives during thank-you window, snap back to live preview
       if (thankTimerRef.current && (data?.items || []).length > 0) {
+        if (typeof thankTimerRef.current !== 'boolean') clearTimeout(thankTimerRef.current);
         thankTimerRef.current = null;
         setLastOrder(null);
       }
@@ -362,9 +363,16 @@ const CustomerDisplayPage = () => {
     });
     const offOrder = onRealtime('order.created', (order) => {
       setLastOrder(order);
-      // Keep the thank-you screen visible until the next sale begins (cart.update with items).
-      // Flag stays truthy so cart.update / cart.clear won't dismiss it prematurely.
-      thankTimerRef.current = true;
+      // Keep the thank-you screen visible for 15s OR until the next sale begins
+      // (whichever comes first — cart.update with items > 0 also dismisses it).
+      if (thankTimerRef.current && typeof thankTimerRef.current !== 'boolean') {
+        clearTimeout(thankTimerRef.current);
+      }
+      thankTimerRef.current = setTimeout(() => {
+        setLastOrder(null);
+        setCart(null);
+        thankTimerRef.current = null;
+      }, 15000);
     });
     return () => { offCart(); offClear(); offOrder(); };
   }, [isAuthenticated]);
